@@ -24,6 +24,80 @@ function formatCurrency(amount) {
   }).format(amount || 0);
 }
 
+const TAB_LABELS = {
+  dashboard: "Dashboard",
+  announcements: "Announcements",
+  events: "Events & Workshops",
+  reports: "Monthly Reports",
+  milestones: "Milestones",
+  profile: "My Profile",
+};
+
+function UndoToast({ toast, onDismiss }) {
+  if (!toast) return null;
+  return (
+    <div className="undo-toast-container">
+      <div className={`undo-toast ${toast.type || "success"}`}>
+        <div className="undo-toast-body">
+          <div className="undo-toast-message">{toast.message}</div>
+          <div className="undo-toast-actions">
+            {toast.onUndo && (
+              <button
+                type="button"
+                className="btn-undo"
+                onClick={() => {
+                  toast.onUndo();
+                  onDismiss();
+                }}
+              >
+                ↩ Undo
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-toast-close"
+              onClick={onDismiss}
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div
+          className="toast-progress"
+          style={{ animationDuration: `${(toast.duration || 5000) / 1000}s` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function NavigationHeader({ activeTab, canGoBack, previousTabLabel, onGoBack, onNavigateHome }) {
+  if (activeTab === "dashboard") return null;
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div className="breadcrumbs">
+        <span className="breadcrumb-link" onClick={onNavigateHome}>
+          🏠 Home
+        </span>
+        <span className="breadcrumb-separator">/</span>
+        <span className="breadcrumb-current">{TAB_LABELS[activeTab] || activeTab}</span>
+      </div>
+      {canGoBack && (
+        <button
+          type="button"
+          className="btn-back"
+          onClick={onGoBack}
+          title={`Return to ${previousTabLabel || "previous page"}`}
+        >
+          <span className="back-arrow">←</span> Back to {previousTabLabel || "Dashboard"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Sidebar({ user, activeTab, setActiveTab, onLogout }) {
   const initials = (user.fullName || "M")
     .split(" ")
@@ -274,27 +348,44 @@ function AnnouncementsTab({ announcements }) {
 // ────────────────────────────────────────────────────────────
 // TAB 3: EVENTS MANAGEMENT & RSVP (UC3)
 // ────────────────────────────────────────────────────────────
-function EventsTab({ events, user, onRefresh }) {
+function EventsTab({ events, user, onRefresh, triggerUndoToast }) {
   const [filter, setFilter] = useState("all");
   const [loadingId, setLoadingId] = useState(null);
-  const [toast, setToast] = useState("");
 
   const handleRSVP = async (event) => {
     setLoadingId(event.eventId);
+    const wasRegistered = event.isRegistered;
     try {
-      if (event.isRegistered) {
+      if (wasRegistered) {
         await api.cancelEventRegistration(event.eventId, user.userId);
-        setToast(`Cancelled your registration for "${event.title}".`);
+        if (triggerUndoToast) {
+          triggerUndoToast({
+            message: `Cancelled RSVP for "${event.title}".`,
+            type: "info",
+            onUndo: async () => {
+              await api.registerForEvent(event.eventId, user.userId);
+              await onRefresh();
+            },
+          });
+        }
       } else {
         await api.registerForEvent(event.eventId, user.userId);
-        setToast(`🎉 Success! You are registered for "${event.title}".`);
+        if (triggerUndoToast) {
+          triggerUndoToast({
+            message: `🎉 Success! You are registered for "${event.title}".`,
+            type: "success",
+            onUndo: async () => {
+              await api.cancelEventRegistration(event.eventId, user.userId);
+              await onRefresh();
+            },
+          });
+        }
       }
       await onRefresh();
     } catch (err) {
       alert(err.message || "Failed to update registration.");
     } finally {
       setLoadingId(null);
-      setTimeout(() => setToast(""), 4000);
     }
   };
 
@@ -311,8 +402,6 @@ function EventsTab({ events, user, onRefresh }) {
           <p>Participate in masterclasses, showcases, and networking sessions</p>
         </div>
       </div>
-
-      {toast && <div className="success-toast">{toast}</div>}
 
       <div className="filter-tabs">
         <button
@@ -407,6 +496,14 @@ function ReportsTab({ reports, user, onRefresh }) {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState("");
 
+  const handleClearReportForm = () => {
+    setBusinessSummary("");
+    setRevenueThisMonth("");
+    setChallengesFaced("");
+    setNextStepsPlan("");
+    setError("");
+  };
+
   const handleSubmitReport = async (e) => {
     e.preventDefault();
     if (!businessSummary.trim()) { setError("Please provide a business progress summary."); return; }
@@ -430,10 +527,7 @@ function ReportsTab({ reports, user, onRefresh }) {
 
       setToast("🎉 Monthly business report submitted successfully!");
       setShowSubmitModal(false);
-      setBusinessSummary("");
-      setRevenueThisMonth("");
-      setChallengesFaced("");
-      setNextStepsPlan("");
+      handleClearReportForm();
       await onRefresh();
     } catch (err) {
       setError(err.message || "Failed to submit report.");
@@ -525,17 +619,27 @@ function ReportsTab({ reports, user, onRefresh }) {
                 />
               </div>
 
-              <div className="modal-actions">
+              <div className="modal-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <button
                   type="button"
-                  className="btn-secondary"
-                  onClick={() => setShowSubmitModal(false)}
+                  className="btn-clear-form"
+                  onClick={handleClearReportForm}
+                  title="Clear all fields"
                 >
-                  Cancel
+                  Clear Form
                 </button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? "Submitting..." : "Submit Report →"}
-                </button>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowSubmitModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-primary" disabled={submitting}>
+                    {submitting ? "Submitting..." : "Submit Report →"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -718,12 +822,55 @@ function ProfileTab({ user }) {
 // MAIN CONTAINER
 // ────────────────────────────────────────────────────────────
 export default function MemberDashboard({ user, onLogout }) {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [tabHistory, setTabHistory] = useState(["dashboard"]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const activeTab = tabHistory[historyIndex] || "dashboard";
+
   const [announcements, setAnnouncements] = useState([]);
   const [reports, setReports] = useState([]);
   const [events, setEvents] = useState([]);
   const [milestones, setMilestones] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Undo Toast state
+  const [undoToast, setUndoToast] = useState(null);
+  const [toastTimer, setToastTimer] = useState(null);
+
+  const triggerUndoToast = useCallback((toastData) => {
+    setUndoToast(toastData);
+    if (toastTimer) clearTimeout(toastTimer);
+    const timer = setTimeout(() => {
+      setUndoToast(null);
+    }, toastData.duration || 5000);
+    setToastTimer(timer);
+  }, [toastTimer]);
+
+  const dismissUndoToast = useCallback(() => {
+    if (toastTimer) clearTimeout(toastTimer);
+    setUndoToast(null);
+  }, [toastTimer]);
+
+  const navigateTab = useCallback((newTab) => {
+    if (newTab === activeTab) return;
+    setTabHistory(prev => {
+      const next = prev.slice(0, historyIndex + 1);
+      next.push(newTab);
+      return next;
+    });
+    setHistoryIndex(prev => prev + 1);
+  }, [activeTab, historyIndex]);
+
+  const goBack = useCallback(() => {
+    if (historyIndex > 0) {
+      setHistoryIndex(prev => prev - 1);
+    } else {
+      navigateTab("dashboard");
+    }
+  }, [historyIndex, navigateTab]);
+
+  const canGoBack = historyIndex > 0 || activeTab !== "dashboard";
+  const previousTab = historyIndex > 0 ? tabHistory[historyIndex - 1] : "dashboard";
+  const previousTabLabel = TAB_LABELS[previousTab] || "Dashboard";
 
   const loadData = useCallback(async () => {
     try {
@@ -754,7 +901,7 @@ export default function MemberDashboard({ user, onLogout }) {
         return (
           <DashboardHome
             user={user}
-            setActiveTab={setActiveTab}
+            setActiveTab={navigateTab}
             announcements={announcements}
             reports={reports}
             events={events}
@@ -764,7 +911,14 @@ export default function MemberDashboard({ user, onLogout }) {
       case "announcements":
         return <AnnouncementsTab announcements={announcements} />;
       case "events":
-        return <EventsTab events={events} user={user} onRefresh={loadData} />;
+        return (
+          <EventsTab
+            events={events}
+            user={user}
+            onRefresh={loadData}
+            triggerUndoToast={triggerUndoToast}
+          />
+        );
       case "reports":
         return <ReportsTab reports={reports} user={user} onRefresh={loadData} />;
       case "milestones":
@@ -781,16 +935,26 @@ export default function MemberDashboard({ user, onLogout }) {
       <Sidebar
         user={user}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={navigateTab}
         onLogout={onLogout}
       />
       <div className="main-content">
+        <NavigationHeader
+          activeTab={activeTab}
+          canGoBack={canGoBack}
+          previousTabLabel={previousTabLabel}
+          onGoBack={goBack}
+          onNavigateHome={() => navigateTab("dashboard")}
+        />
         {loading ? (
           <div className="loading-spinner">Loading dashboard data...</div>
         ) : (
           renderContent()
         )}
       </div>
+
+      <UndoToast toast={undoToast} onDismiss={dismissUndoToast} />
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProfileSetup from "./pages/ProfileSetup";
@@ -11,7 +11,34 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [pendingUser, setPendingUser] = useState(null);
 
-  const navigate = (p) => setPage(p);
+  const navigate = useCallback((p, pushHistory = true) => {
+    setPage(p);
+    if (pushHistory) {
+      window.history.pushState({ page: p }, "", `#${p}`);
+    }
+  }, []);
+
+  // Listen for browser Back/Forward navigation
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (e.state && e.state.page) {
+        setPage(e.state.page);
+      } else if (window.location.hash) {
+        const hashPage = window.location.hash.replace("#", "");
+        if (["login", "register", "profile-setup", "member-dashboard", "admin-dashboard"].includes(hashPage)) {
+          setPage(hashPage);
+        }
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    // Set initial history state if not set
+    if (!window.history.state) {
+      window.history.replaceState({ page: "login" }, "", "#login");
+    }
+
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
@@ -44,10 +71,17 @@ export default function App() {
         <Login onLogin={handleLoginSuccess} onGoRegister={() => navigate("register")} />
       )}
       {page === "register" && (
-        <Register onRegister={handleRegisterSuccess} onGoLogin={() => navigate("login")} />
+        <Register
+          onRegister={handleRegisterSuccess}
+          onGoLogin={() => navigate("login")}
+        />
       )}
       {page === "profile-setup" && (
-        <ProfileSetup pendingUser={pendingUser} onComplete={handleProfileComplete} />
+        <ProfileSetup
+          pendingUser={pendingUser}
+          onComplete={handleProfileComplete}
+          onBack={() => navigate("login")}
+        />
       )}
       {page === "member-dashboard" && currentUser && (
         <MemberDashboard user={currentUser} onLogout={handleLogout} />
@@ -58,3 +92,4 @@ export default function App() {
     </div>
   );
 }
+

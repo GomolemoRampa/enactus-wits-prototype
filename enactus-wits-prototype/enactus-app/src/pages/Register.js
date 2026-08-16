@@ -72,6 +72,9 @@ export default function Register({ onRegister, onGoLogin }) {
 
         {step === "form" && (
           <>
+            <button type="button" className="btn-back-auth" onClick={onGoLogin}>
+              ← Back to Sign In
+            </button>
             <h2>Create your account</h2>
             <p className="auth-sub">Join the Enactus Wits student entrepreneur network</p>
 
@@ -148,6 +151,9 @@ export default function Register({ onRegister, onGoLogin }) {
 
         {step === "verify" && (
           <div className="verify-box">
+            <button type="button" className="btn-back-auth" onClick={() => setStep("form")} style={{ marginBottom: 12 }}>
+              ← Back to edit registration details
+            </button>
             <div className="verify-icon">📧</div>
             <h3>Verify your email address</h3>
             <p>
@@ -167,3 +173,4 @@ export default function Register({ onRegister, onGoLogin }) {
     </div>
   );
 }
+

@@ -1,13 +1,21 @@
 import { useState } from "react";
 import { BUSINESS_STAGES, api } from "../services/api";
 
-export default function ProfileSetup({ pendingUser, onComplete }) {
+export default function ProfileSetup({ pendingUser, onComplete, onBack }) {
   const [bio, setBio] = useState("");
   const [businessIdea, setBusinessIdea] = useState("");
   const [phone, setPhone] = useState("");
   const [selectedStage, setSelectedStage] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleReset = () => {
+    setBio("");
+    setBusinessIdea("");
+    setPhone("");
+    setSelectedStage(null);
+    setError("");
+  };
 
   const handleSubmit = async () => {
     if (!bio.trim()) { setError("Please add a short bio about your entrepreneurial focus."); return; }
@@ -44,6 +52,12 @@ export default function ProfileSetup({ pendingUser, onComplete }) {
   return (
     <div className="setup-page">
       <div className="setup-card">
+        {onBack && (
+          <button type="button" className="btn-back-auth" onClick={onBack}>
+            ← Back to Sign In
+          </button>
+        )}
+
         <div className="auth-logo" style={{ marginBottom: 24 }}>
           <div className="auth-logo-mark">EW</div>
           <div className="auth-logo-text">
@@ -112,10 +126,26 @@ export default function ProfileSetup({ pendingUser, onComplete }) {
           </div>
         </div>
 
-        <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
-          {loading ? "Saving profile..." : "Complete setup & enter dashboard →"}
-        </button>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
+          <button
+            type="button"
+            className="btn-clear-form"
+            onClick={handleReset}
+            title="Reset form fields"
+          >
+            Clear Form
+          </button>
+          <button
+            className="btn-primary"
+            onClick={handleSubmit}
+            disabled={loading}
+            style={{ flex: 1 }}
+          >
+            {loading ? "Saving profile..." : "Complete setup & enter dashboard →"}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+

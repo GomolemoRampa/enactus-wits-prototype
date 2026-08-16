@@ -24,6 +24,80 @@ function formatCurrency(amount) {
   }).format(amount || 0);
 }
 
+const ADMIN_TAB_LABELS = {
+  overview: "Admin Overview",
+  members: "Members Directory",
+  announcements: "Announcements",
+  compose: "Send Announcement",
+  events: "Events Management",
+  reports: "Review Reports",
+};
+
+function UndoToast({ toast, onDismiss }) {
+  if (!toast) return null;
+  return (
+    <div className="undo-toast-container">
+      <div className={`undo-toast ${toast.type || "success"}`}>
+        <div className="undo-toast-body">
+          <div className="undo-toast-message">{toast.message}</div>
+          <div className="undo-toast-actions">
+            {toast.onUndo && (
+              <button
+                type="button"
+                className="btn-undo"
+                onClick={() => {
+                  toast.onUndo();
+                  onDismiss();
+                }}
+              >
+                ↩ Undo
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-toast-close"
+              onClick={onDismiss}
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div
+          className="toast-progress"
+          style={{ animationDuration: `${(toast.duration || 5000) / 1000}s` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function NavigationHeader({ activeTab, canGoBack, previousTabLabel, onGoBack, onNavigateHome }) {
+  if (activeTab === "overview") return null;
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div className="breadcrumbs">
+        <span className="breadcrumb-link" onClick={onNavigateHome}>
+          🏠 Overview
+        </span>
+        <span className="breadcrumb-separator">/</span>
+        <span className="breadcrumb-current">{ADMIN_TAB_LABELS[activeTab] || activeTab}</span>
+      </div>
+      {canGoBack && (
+        <button
+          type="button"
+          className="btn-back"
+          onClick={onGoBack}
+          title={`Return to ${previousTabLabel || "previous view"}`}
+        >
+          <span className="back-arrow">←</span> Back to {previousTabLabel || "Overview"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Sidebar({ user, activeTab, setActiveTab, onLogout, pendingReportsCount }) {
   const initials = (user.fullName || "A")
     .split(" ")
@@ -464,6 +538,15 @@ function EventsManagementTab({ events, user, onRefresh }) {
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
 
+  const handleClearEventForm = () => {
+    setTitle("");
+    setDescription("");
+    setCategory("Workshop");
+    setEventDate("");
+    setVisibility("MembersOnly");
+    setError("");
+  };
+
   const handleCreateEvent = async (e) => {
     e.preventDefault();
     if (!title.trim() || !eventDate) {
@@ -488,9 +571,7 @@ function EventsManagementTab({ events, user, onRefresh }) {
 
       setToast("🎉 New event created successfully!");
       setShowCreateModal(false);
-      setTitle("");
-      setDescription("");
-      setEventDate("");
+      handleClearEventForm();
       await onRefresh();
     } catch (err) {
       setError(err.message || "Failed to create event.");
@@ -593,17 +674,27 @@ function EventsManagementTab({ events, user, onRefresh }) {
                 </select>
               </div>
 
-              <div className="modal-actions">
+              <div className="modal-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <button
                   type="button"
-                  className="btn-secondary"
-                  onClick={() => setShowCreateModal(false)}
+                  className="btn-clear-form"
+                  onClick={handleClearEventForm}
+                  title="Clear all fields"
                 >
-                  Cancel
+                  Clear Form
                 </button>
-                <button type="submit" className="btn-primary" disabled={creating}>
-                  {creating ? "Creating..." : "Publish Event →"}
-                </button>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowCreateModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-primary" disabled={creating}>
+                    {creating ? "Creating..." : "Publish Event →"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -875,17 +966,27 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
                 />
               </div>
 
-              <div className="modal-actions">
+              <div className="modal-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <button
                   type="button"
-                  className="btn-secondary"
-                  onClick={() => setSelectedReport(null)}
+                  className="btn-clear-form"
+                  onClick={() => setReviewNotes("")}
+                  title="Clear comments"
                 >
-                  Cancel
+                  Clear Comments
                 </button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? "Saving..." : "Save Review & Comments →"}
-                </button>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setSelectedReport(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-primary" disabled={submitting}>
+                    {submitting ? "Saving..." : "Save Review & Comments →"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -969,12 +1070,55 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
 // MAIN ADMIN DASHBOARD CONTAINER
 // ────────────────────────────────────────────────────────────
 export default function AdminDashboard({ user, onLogout }) {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [tabHistory, setTabHistory] = useState(["overview"]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const activeTab = tabHistory[historyIndex] || "overview";
+
   const [members, setMembers] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [events, setEvents] = useState([]);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Undo Toast state
+  const [undoToast, setUndoToast] = useState(null);
+  const [toastTimer, setToastTimer] = useState(null);
+
+  const triggerUndoToast = useCallback((toastData) => {
+    setUndoToast(toastData);
+    if (toastTimer) clearTimeout(toastTimer);
+    const timer = setTimeout(() => {
+      setUndoToast(null);
+    }, toastData.duration || 5000);
+    setToastTimer(timer);
+  }, [toastTimer]);
+
+  const dismissUndoToast = useCallback(() => {
+    if (toastTimer) clearTimeout(toastTimer);
+    setUndoToast(null);
+  }, [toastTimer]);
+
+  const navigateTab = useCallback((newTab) => {
+    if (newTab === activeTab) return;
+    setTabHistory(prev => {
+      const next = prev.slice(0, historyIndex + 1);
+      next.push(newTab);
+      return next;
+    });
+    setHistoryIndex(prev => prev + 1);
+  }, [activeTab, historyIndex]);
+
+  const goBack = useCallback(() => {
+    if (historyIndex > 0) {
+      setHistoryIndex(prev => prev - 1);
+    } else {
+      navigateTab("overview");
+    }
+  }, [historyIndex, navigateTab]);
+
+  const canGoBack = historyIndex > 0 || activeTab !== "overview";
+  const previousTab = historyIndex > 0 ? tabHistory[historyIndex - 1] : "overview";
+  const previousTabLabel = ADMIN_TAB_LABELS[previousTab] || "Overview";
 
   const loadAdminData = useCallback(async () => {
     try {
@@ -1010,13 +1154,13 @@ export default function AdminDashboard({ user, onLogout }) {
             announcements={announcements}
             events={events}
             reports={reports}
-            setActiveTab={setActiveTab}
+            setActiveTab={navigateTab}
           />
         );
       case "members":
         return <MembersTab members={members} />;
       case "announcements":
-        return <AnnouncementsTab announcements={announcements} setActiveTab={setActiveTab} />;
+        return <AnnouncementsTab announcements={announcements} setActiveTab={navigateTab} />;
       case "compose":
         return <ComposeTab user={user} onSent={loadAdminData} />;
       case "events":
@@ -1033,17 +1177,27 @@ export default function AdminDashboard({ user, onLogout }) {
       <Sidebar
         user={user}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={navigateTab}
         onLogout={onLogout}
         pendingReportsCount={pendingReportsCount}
       />
       <div className="main-content">
+        <NavigationHeader
+          activeTab={activeTab}
+          canGoBack={canGoBack}
+          previousTabLabel={previousTabLabel}
+          onGoBack={goBack}
+          onNavigateHome={() => navigateTab("overview")}
+        />
         {loading ? (
           <div className="loading-spinner">Loading admin data...</div>
         ) : (
           renderContent()
         )}
       </div>
+
+      <UndoToast toast={undoToast} onDismiss={dismissUndoToast} />
     </div>
   );
 }
+
