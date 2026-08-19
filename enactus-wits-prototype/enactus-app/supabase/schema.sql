@@ -61,36 +61,18 @@ create table if not exists app_user (
     last_login        timestamptz
 );
 
--- Domain constraint
+-- Domain constraint: allow both student and staff/advisor emails
 alter table app_user
   drop constraint if exists chk_wits_email_domain;
 alter table app_user
   add constraint chk_wits_email_domain
-  check (wits_email like '%@students.wits.ac.za');
-
--- Auto-create an app_user row whenever someone signs in via Azure AD
-create or replace function handle_new_auth_user()
-returns trigger as $$
-declare
-  default_role_id bigint;
-begin
-  select role_id into default_role_id from role where role_name = 'Member' limit 1;
-
-  insert into app_user (auth_user_id, full_name, wits_email, role_id)
-  values (
-    new.id,
-    coalesce(new.raw_user_meta_data->>'full_name', new.email),
-    new.email,
-    default_role_id
+  check (
+    wits_email like '%@students.wits.ac.za'
+    or wits_email like '%@wits.ac.za'
   );
-  return new;
-end;
-$$ language plpgsql security definer;
 
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function handle_new_auth_user();
+-- NOTE: The handle_new_auth_user trigger and domain validation trigger
+-- are defined in triggers.sql — run that file after this one.
 
 -- -------------------------
 -- 3. REPORT (self-referencing FK for resubmission)
@@ -121,7 +103,8 @@ create table if not exists announcement (
     created_by_user_id  bigint not null references app_user(user_id),
     created_at          timestamptz not null default now(),
     audience_type       audience_type not null default 'AllMembers',
-    recipient_count     int not null default 0
+    recipient_count     int not null default 0,
+    pinned              boolean not null default false
 );
 
 create table if not exists audience_map (

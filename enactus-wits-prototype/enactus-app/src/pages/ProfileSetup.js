@@ -2,40 +2,30 @@ import { useState } from "react";
 import { BUSINESS_STAGES, api } from "../services/api";
 
 export default function ProfileSetup({ pendingUser, onComplete, onBack }) {
-  const [bio, setBio] = useState("");
-  const [businessIdea, setBusinessIdea] = useState("");
   const [phone, setPhone] = useState("");
   const [selectedStage, setSelectedStage] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleReset = () => {
-    setBio("");
-    setBusinessIdea("");
     setPhone("");
     setSelectedStage(null);
     setError("");
   };
 
   const handleSubmit = async () => {
-    if (!bio.trim()) { setError("Please add a short bio about your entrepreneurial focus."); return; }
-    if (!businessIdea.trim()) { setError("Please enter your business idea or startup name."); return; }
     if (!selectedStage) { setError("Please select your current business stage."); return; }
     setError("");
     setLoading(true);
 
     try {
       const updated = await api.updateProfile(pendingUser.userId, {
-        bio,
-        businessIdea,
         phone,
         businessStageId: selectedStage,
       });
 
       const completedUser = {
         ...pendingUser,
-        bio,
-        businessIdea,
         phone,
         businessStageId: selectedStage,
         ...(updated || {}),
@@ -69,7 +59,7 @@ export default function ProfileSetup({ pendingUser, onComplete, onBack }) {
         <div className="setup-step">Step 2 of 2 — Venture Profile Setup</div>
         <h2>Complete your founder profile</h2>
         <p className="setup-sub">
-          Tell us about yourself and your venture so we can tailor stage-specific opportunities, events, and resources to you.
+          Tell us about your venture stage so we can tailor stage-specific opportunities, events, and resources to you.
         </p>
 
         {error && <div className="error-msg">{error}</div>}
@@ -81,26 +71,6 @@ export default function ProfileSetup({ pendingUser, onComplete, onBack }) {
             placeholder="e.g. 071 234 5678"
             value={phone}
             onChange={e => setPhone(e.target.value)}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Founder bio</label>
-          <textarea
-            rows={3}
-            placeholder="Tell the Enactus team about your background, degree, and what drives your entrepreneurial journey..."
-            value={bio}
-            onChange={e => setBio(e.target.value)}
-            style={{ resize: "none" }}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Business idea / startup venture name</label>
-          <input
-            placeholder="e.g. EduBridge, GreenCore, FarmLink..."
-            value={businessIdea}
-            onChange={e => setBusinessIdea(e.target.value)}
           />
         </div>
 
@@ -148,4 +118,3 @@ export default function ProfileSetup({ pendingUser, onComplete, onBack }) {
     </div>
   );
 }
-

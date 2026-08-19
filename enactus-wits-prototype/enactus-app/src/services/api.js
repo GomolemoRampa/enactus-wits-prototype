@@ -432,6 +432,101 @@ export const api = {
     throw new Error("Microsoft Entra ID SSO is active when deployed with Supabase. Please sign in with credentials in prototype mode.");
   },
 
+  async signOut() {
+    if (isSupabaseConfigured() && supabase) {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw new Error(error.message);
+    }
+    // Clear local session state regardless
+    return true;
+  },
+
+  /**
+   * Restore session on page load (Supabase persists auth in localStorage).
+   * Returns a user object if a session exists, otherwise null.
+   */
+  async getCurrentUser() {
+    if (!isSupabaseConfigured() || !supabase) return null;
+
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error || !session) return null;
+
+    const { data: appUser, error: uErr } = await supabase
+      .from("app_user")
+      .select(`
+        user_id, auth_user_id, full_name, wits_email, role_id,
+        business_stage_id, account_status, cell_number, join_date
+      `)
+      .eq("auth_user_id", session.user.id)
+      .single();
+
+    if (uErr || !appUser) return null;
+
+    return {
+      userId: appUser.user_id,
+      authUserId: appUser.auth_user_id,
+      fullName: appUser.full_name,
+      email: appUser.wits_email,
+      roleId: appUser.role_id,
+      businessStageId: appUser.business_stage_id,
+      status: appUser.account_status,
+      phone: appUser.cell_number,
+    };
+  },
+
+  /**
+   * Subscribe to auth state changes (handles Azure SSO redirect callback).
+   * Pass a callback: (user | null) => void
+   * Returns the unsubscribe function.
+   */
+  onAuthStateChange(callback) {
+    if (!isSupabaseConfigured() || !supabase) return () => {};
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_OUT" || !session) {
+          callback(null);
+          return;
+        }
+        // On SIGNED_IN or TOKEN_REFRESHED, fetch the app_user profile
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          const { data: appUser } = await supabase
+            .from("app_user")
+            .select(`
+              user_id, auth_user_id, full_name, wits_email, role_id,
+              business_stage_id, account_status, cell_number
+            `)
+            .eq("auth_user_id", session.user.id)
+            .single();
+
+          if (appUser) {
+            callback({
+              userId: appUser.user_id,
+              authUserId: appUser.auth_user_id,
+              fullName: appUser.full_name,
+              email: appUser.wits_email,
+              roleId: appUser.role_id,
+              businessStageId: appUser.business_stage_id,
+              status: appUser.account_status,
+              phone: appUser.cell_number,
+            });
+          } else {
+            // app_user row not yet created (trigger delay) — return minimal user
+            callback({
+              authUserId: session.user.id,
+              email: session.user.email,
+              fullName: session.user.user_metadata?.full_name || session.user.email,
+              roleId: 1,
+              businessStageId: null,
+            });
+          }
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  },
+
   async updateProfile(userId, profileData) {
     if (isSupabaseConfigured() && supabase) {
       const { data, error } = await supabase
