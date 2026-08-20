@@ -23,7 +23,7 @@ export default function App() {
 
   // ── Restore session on page load & handle Azure SSO redirect ──────────────
   useEffect(() => {
-    let unsubscribe = () => {};
+    let unsubscribe = () => { };
 
     const init = async () => {
       if (isSupabaseConfigured()) {
