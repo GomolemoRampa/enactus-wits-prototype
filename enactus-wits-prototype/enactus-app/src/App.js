@@ -4,7 +4,8 @@ import Register from "./pages/Register";
 import ProfileSetup from "./pages/ProfileSetup";
 import MemberDashboard from "./pages/MemberDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import { api, isSupabaseConfigured } from "./services/api";
+import { api } from "./services/api";
+import { isSupabaseConfigured } from "./lib/supabaseClient";
 import "./App.css";
 
 export default function App() {
@@ -22,7 +23,7 @@ export default function App() {
 
   // ── Restore session on page load & handle Azure SSO redirect ──────────────
   useEffect(() => {
-    let unsubscribe = () => {};
+    let unsubscribe = () => { };
 
     const init = async () => {
       if (isSupabaseConfigured()) {
