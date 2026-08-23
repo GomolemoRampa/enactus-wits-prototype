@@ -367,19 +367,24 @@ export const api = {
       });
       if (error) throw new Error(error.message);
 
-      // Trigger creates app_user; fetch created app_user row
-      const { data: appUser } = await supabase
-        .from("app_user")
-        .select("*")
-        .eq("auth_user_id", data.user.id)
-        .single();
+      // Trigger creates the app_user row — retry a few times in case of slight delay
+      let appUser = null;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 1000));
+        const { data: row } = await supabase
+          .from("app_user")
+          .select("user_id, role_id, account_status")
+          .eq("auth_user_id", data.user.id)
+          .single();
+        if (row) { appUser = row; break; }
+      }
 
       return {
-        userId: appUser ? appUser.user_id : data.user.id,
+        userId: appUser?.user_id ?? null,
         authUserId: data.user.id,
         fullName: userData.fullName,
         email: userData.email,
-        roleId: appUser ? appUser.role_id : 1,
+        roleId: appUser?.role_id ?? 1,
         businessStageId: null,
       };
     }
@@ -527,15 +532,19 @@ export const api = {
     return () => subscription.unsubscribe();
   },
 
-  async updateProfile(userId, profileData) {
+  async updateProfile(userId, authUserId, profileData) {
     if (isSupabaseConfigured() && supabase) {
+      // Use auth_user_id (UUID) if bigint user_id is not available yet
+      const column = userId ? "user_id" : "auth_user_id";
+      const value  = userId ?? authUserId;
+
       const { data, error } = await supabase
         .from("app_user")
         .update({
           business_stage_id: profileData.businessStageId,
           cell_number: profileData.phone,
         })
-        .eq("user_id", userId)
+        .eq(column, value)
         .select()
         .single();
 

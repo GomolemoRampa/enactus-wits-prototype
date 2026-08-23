@@ -19,7 +19,7 @@ export default function ProfileSetup({ pendingUser, onComplete, onBack }) {
     setLoading(true);
 
     try {
-      const updated = await api.updateProfile(pendingUser.userId, {
+      const updated = await api.updateProfile(pendingUser.userId, pendingUser.authUserId, {
         phone,
         businessStageId: selectedStage,
       });
