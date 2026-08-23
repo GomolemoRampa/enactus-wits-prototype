@@ -25,7 +25,8 @@ app.use(express.json());
 // Initialize Resend
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
-const SENDER_EMAIL = process.env.SENDER_EMAIL || 'Enactus Wits <notifications@enactuswits.org>';
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+const TEST_RECIPIENT = process.env.TEST_RECIPIENT || 'wisemanrampa@gmail.com';
 
 // Initialize Supabase Admin Client (Service Role for backend operations)
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -149,9 +150,14 @@ app.post('/api/webhooks/announcement', async (req, res) => {
       `<div class="card"><p style="margin: 0; white-space: pre-line;">${record.body}</p></div>`
     );
 
+    // In Resend test sandbox mode (onboarding@resend.dev), Resend only allows sending to the account owner's email
+    const deliveryEmails = SENDER_EMAIL.includes('resend.dev') && TEST_RECIPIENT
+      ? [TEST_RECIPIENT]
+      : recipientEmails;
+
     const result = await resend.emails.send({
       from: SENDER_EMAIL,
-      to: recipientEmails,
+      to: deliveryEmails,
       subject: `[Enactus Wits] ${record.title}`,
       html,
     });
@@ -223,9 +229,14 @@ app.post('/api/webhooks/event', async (req, res) => {
       return res.status(200).json({ message: 'Simulated email delivery', recipientCount: recipientEmails.length });
     }
 
+    // In Resend test sandbox mode (onboarding@resend.dev), Resend only allows sending to the account owner's email
+    const deliveryEmails = SENDER_EMAIL.includes('resend.dev') && TEST_RECIPIENT
+      ? [TEST_RECIPIENT]
+      : recipientEmails;
+
     const result = await resend.emails.send({
       from: SENDER_EMAIL,
-      to: recipientEmails,
+      to: deliveryEmails,
       subject: `[Enactus Wits Event] ${record.title}`,
       html,
     });
