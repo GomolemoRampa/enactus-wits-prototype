@@ -291,6 +291,45 @@ export function audienceTypeToStageId(audienceType) {
 }
 
 // ────────────────────────────────────────────────────────────
+// REPORT TEMPLATES & SCHEMAS
+// ────────────────────────────────────────────────────────────
+export const REPORT_TEMPLATES = [
+  {
+    id: "roadmap",
+    title: "Enactus Roadmap Monthly Report",
+    description: "Official comprehensive monthly venture progress, milestones, impact tracking, and operational goals roadmap.",
+    fileName: "ENACTUS ROADMAP MONTHLY REPORT TEMPLATE.xlsx",
+    fileUrl: "/templates/ENACTUS%20ROADMAP%20MONTHLY%20REPORT%20TEMPLATE.xlsx",
+    fileSize: "4.1 MB",
+    badge: "Comprehensive",
+    badgeColor: "badge-green",
+    category: "Roadmap Progress",
+  },
+  {
+    id: "financial",
+    title: "Financial Report Template",
+    description: "Standard financial statements, monthly revenue, expenditures, cash flow, and venture budget tracking.",
+    fileName: "Financial Report Template.xlsx",
+    fileUrl: "/templates/Financial%20Report%20Template.xlsx",
+    fileSize: "658 KB",
+    badge: "Financials",
+    badgeColor: "badge-blue",
+    category: "Financials",
+  },
+  {
+    id: "marketing",
+    title: "Marketing & Social Media Reporting Template",
+    description: "Campaign metrics, audience reach, social media engagement, and brand awareness analytics.",
+    fileName: "2020-21 Enactus ZA Marketing & Social Media Reporting Template.xlsx",
+    fileUrl: "/templates/2020-21%20Enactus%20ZA%20Marketing%20%26%20Social%20Media%20Reporting%20Template.xlsx",
+    fileSize: "37 KB",
+    badge: "Marketing",
+    badgeColor: "badge-amber",
+    category: "Marketing",
+  },
+];
+
+// ────────────────────────────────────────────────────────────
 // API IMPLEMENTATION
 // ────────────────────────────────────────────────────────────
 export const api = {
@@ -939,11 +978,15 @@ export const api = {
 
       return (data || []).map(r => ({
         reportId: r.report_id,
+        reportType: r.report_type || r.content?.report_type || "Roadmap Progress",
         reportMonth: r.submission_period,
         businessSummary: r.content?.business_summary || "",
         revenueThisMonth: Number(r.content?.revenue_this_month || 0),
         challengesFaced: r.content?.challenges_faced || "",
         nextStepsPlan: r.content?.next_steps_plan || "",
+        fileName: r.content?.file_name || null,
+        fileSize: r.content?.file_size || null,
+        fileData: r.content?.file_data || null,
         status: r.status === "Pending" ? "Submitted" : r.status,
         submittedAt: r.submitted_at,
         reviewNotes: r.admin_comments,
@@ -961,11 +1004,15 @@ export const api = {
         const reviewer = users.find(u => Number(u.user_id) === Number(r.reviewed_by_user_id));
         return {
           reportId: r.report_id,
+          reportType: r.report_type || r.content?.report_type || "Roadmap Progress",
           reportMonth: r.submission_period,
           businessSummary: r.content?.business_summary || "",
           revenueThisMonth: Number(r.content?.revenue_this_month || 0),
           challengesFaced: r.content?.challenges_faced || "",
           nextStepsPlan: r.content?.next_steps_plan || "",
+          fileName: r.content?.file_name || null,
+          fileSize: r.content?.file_size || null,
+          fileData: r.content?.file_data || null,
           status: r.status === "Pending" ? "Submitted" : r.status,
           submittedAt: r.submitted_at,
           reviewNotes: r.admin_comments,
@@ -995,11 +1042,15 @@ export const api = {
         userName: r.app_user?.full_name,
         userEmail: r.app_user?.wits_email,
         businessStageId: r.app_user?.business_stage_id,
+        reportType: r.report_type || r.content?.report_type || "Roadmap Progress",
         reportMonth: r.submission_period,
         businessSummary: r.content?.business_summary || "",
         revenueThisMonth: Number(r.content?.revenue_this_month || 0),
         challengesFaced: r.content?.challenges_faced || "",
         nextStepsPlan: r.content?.next_steps_plan || "",
+        fileName: r.content?.file_name || null,
+        fileSize: r.content?.file_size || null,
+        fileData: r.content?.file_data || null,
         status: r.status === "Pending" ? "Submitted" : r.status,
         submittedAt: r.submitted_at,
         reviewNotes: r.admin_comments,
@@ -1020,11 +1071,15 @@ export const api = {
         userName: user?.full_name || "Member",
         userEmail: user?.wits_email || "—",
         businessStageId: user?.business_stage_id,
+        reportType: r.report_type || r.content?.report_type || "Roadmap Progress",
         reportMonth: r.submission_period,
         businessSummary: r.content?.business_summary || "",
         revenueThisMonth: Number(r.content?.revenue_this_month || 0),
         challengesFaced: r.content?.challenges_faced || "",
         nextStepsPlan: r.content?.next_steps_plan || "",
+        fileName: r.content?.file_name || null,
+        fileSize: r.content?.file_size || null,
+        fileData: r.content?.file_data || null,
         status: r.status === "Pending" ? "Submitted" : r.status,
         submittedAt: r.submitted_at,
         reviewNotes: r.admin_comments,
@@ -1035,10 +1090,14 @@ export const api = {
 
   async submitReport(reportData, userId) {
     const content = {
-      business_summary: reportData.businessSummary,
+      report_type: reportData.reportType || "Roadmap Progress",
+      business_summary: reportData.businessSummary || "",
       revenue_this_month: parseFloat(reportData.revenueThisMonth) || 0.0,
-      challenges_faced: reportData.challengesFaced,
-      next_steps_plan: reportData.nextStepsPlan,
+      challenges_faced: reportData.challengesFaced || "",
+      next_steps_plan: reportData.nextStepsPlan || "",
+      file_name: reportData.fileName || null,
+      file_size: reportData.fileSize || null,
+      file_data: reportData.fileData || null,
     };
 
     if (isSupabaseConfigured() && supabase) {
@@ -1046,7 +1105,7 @@ export const api = {
         .from("report")
         .insert({
           user_id: userId,
-          report_type: "Overall",
+          report_type: reportData.reportType || "Overall",
           submission_period: reportData.reportMonth,
           content,
           status: "Pending",
@@ -1062,7 +1121,7 @@ export const api = {
     const newReport = {
       report_id: reports.length + 1,
       user_id: userId,
-      report_type: "Overall",
+      report_type: reportData.reportType || "Overall",
       submission_period: reportData.reportMonth,
       content,
       submitted_at: new Date().toISOString(),

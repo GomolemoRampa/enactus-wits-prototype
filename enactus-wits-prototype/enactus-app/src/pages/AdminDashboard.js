@@ -860,7 +860,7 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
       <div className="topbar">
         <div className="topbar-title">
           <h1>Monthly Venture Reports Review</h1>
-          <p>Evaluate student entrepreneur submissions (Group11 report schema) and provide feedback</p>
+          <p>Download and evaluate member Excel submissions & provide advisor feedback</p>
         </div>
       </div>
 
@@ -901,29 +901,59 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
               <div>
                 <h2>Review Report — {selectedReport.userName}</h2>
                 <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>
-                  Period: {selectedReport.reportMonth} &nbsp;•&nbsp; Email: {selectedReport.userEmail}
+                  Period: {selectedReport.reportMonth} &nbsp;•&nbsp; Category: {selectedReport.reportType || "Roadmap Progress"} &nbsp;•&nbsp; Email: {selectedReport.userEmail}
                 </p>
               </div>
               <button className="modal-close-btn" onClick={() => setSelectedReport(null)}>✕</button>
             </div>
 
             <div className="report-review-details">
-              <div className="detail-row">
-                <strong>Venture Summary:</strong>
-                <p>{selectedReport.businessSummary}</p>
-              </div>
+              {/* Attached Excel Workbook Download Box */}
+              {selectedReport.fileName && (
+                <div className="attached-file-pill" style={{ marginBottom: 16 }}>
+                  <div className="attached-file-info">
+                    <span className="attached-file-icon">📊</span>
+                    <div>
+                      <div className="attached-file-title">Submitted Spreadsheet: <strong>{selectedReport.fileName}</strong></div>
+                      {selectedReport.fileSize && <div className="attached-file-meta">{selectedReport.fileSize}</div>}
+                    </div>
+                  </div>
+                  {selectedReport.fileData ? (
+                    <a
+                      href={selectedReport.fileData}
+                      download={selectedReport.fileName}
+                      className="btn-download-attachment"
+                    >
+                      📥 Download & Open Excel
+                    </a>
+                  ) : (
+                    <span className="file-stored-badge">📄 File on Record</span>
+                  )}
+                </div>
+              )}
+
+              {selectedReport.businessSummary && (
+                <div className="detail-row">
+                  <strong>Venture Summary / Notes:</strong>
+                  <p>{selectedReport.businessSummary}</p>
+                </div>
+              )}
               <div className="detail-row">
                 <strong>Revenue Generated:</strong>
                 <p>{formatCurrency(selectedReport.revenueThisMonth)}</p>
               </div>
-              <div className="detail-row">
-                <strong>Challenges Reported:</strong>
-                <p>{selectedReport.challengesFaced || "None"}</p>
-              </div>
-              <div className="detail-row">
-                <strong>Next Steps Plan:</strong>
-                <p>{selectedReport.nextStepsPlan || "None"}</p>
-              </div>
+              {selectedReport.challengesFaced && (
+                <div className="detail-row">
+                  <strong>Challenges Reported:</strong>
+                  <p>{selectedReport.challengesFaced}</p>
+                </div>
+              )}
+              {selectedReport.nextStepsPlan && (
+                <div className="detail-row">
+                  <strong>Next Steps Plan:</strong>
+                  <p>{selectedReport.nextStepsPlan}</p>
+                </div>
+              )}
             </div>
 
             <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "20px 0" }} />
@@ -1005,6 +1035,9 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
               <div className="report-header">
                 <div>
                   <span className="report-founder-name">{r.userName || "Student Founder"}</span>
+                  <span className="badge badge-purple" style={{ marginLeft: 8 }}>
+                    {r.reportType || "Roadmap Progress"}
+                  </span>
                   <span
                     className={`badge ${
                       r.status === "Reviewed"
@@ -1026,21 +1059,53 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
                 </div>
               </div>
 
-              <div className="report-section">
-                <h4>Venture Summary</h4>
-                <p>{r.businessSummary}</p>
-              </div>
+              {/* Download Attached Excel file if available */}
+              {r.fileName && (
+                <div className="attached-file-pill">
+                  <div className="attached-file-info">
+                    <span className="attached-file-icon">📊</span>
+                    <div>
+                      <div className="attached-file-title">Submitted Spreadsheet: <strong>{r.fileName}</strong></div>
+                      {r.fileSize && <div className="attached-file-meta">{r.fileSize}</div>}
+                    </div>
+                  </div>
+                  {r.fileData ? (
+                    <a
+                      href={r.fileData}
+                      download={r.fileName}
+                      className="btn-download-attachment"
+                    >
+                      📥 Download Sheet
+                    </a>
+                  ) : (
+                    <span className="file-stored-badge">📄 File on Record</span>
+                  )}
+                </div>
+              )}
 
-              <div className="report-grid">
+              {r.businessSummary && (
                 <div className="report-section">
-                  <h4>Challenges</h4>
-                  <p>{r.challengesFaced || "None"}</p>
+                  <h4>Venture Summary / Notes</h4>
+                  <p>{r.businessSummary}</p>
                 </div>
-                <div className="report-section">
-                  <h4>Next Steps</h4>
-                  <p>{r.nextStepsPlan || "None"}</p>
+              )}
+
+              {(r.challengesFaced || r.nextStepsPlan) && (
+                <div className="report-grid">
+                  {r.challengesFaced && (
+                    <div className="report-section">
+                      <h4>Challenges</h4>
+                      <p>{r.challengesFaced}</p>
+                    </div>
+                  )}
+                  {r.nextStepsPlan && (
+                    <div className="report-section">
+                      <h4>Next Steps</h4>
+                      <p>{r.nextStepsPlan}</p>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               {r.reviewNotes && (
                 <div className="advisor-feedback-box">

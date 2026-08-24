@@ -5,6 +5,7 @@ import {
   getStageName,
   BUSINESS_STAGES,
   AUDIENCE_TYPES,
+  REPORT_TEMPLATES,
 } from "../services/api";
 
 function formatDate(iso) {
@@ -487,28 +488,83 @@ function EventsTab({ events, user, onRefresh, triggerUndoToast }) {
 // ────────────────────────────────────────────────────────────
 function ReportsTab({ reports, user, onRefresh }) {
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [reportType, setReportType] = useState("Roadmap Monthly Report");
   const [reportMonth, setReportMonth] = useState("2026-04");
   const [businessSummary, setBusinessSummary] = useState("");
   const [revenueThisMonth, setRevenueThisMonth] = useState("");
   const [challengesFaced, setChallengesFaced] = useState("");
   const [nextStepsPlan, setNextStepsPlan] = useState("");
+  const [attachedFile, setAttachedFile] = useState(null);
+  const [fileData, setFileData] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState("");
 
+  const handleFileChange = (file) => {
+    if (!file) return;
+    const validExtensions = [".xlsx", ".xls", ".csv", ".pdf", ".docx", ".doc"];
+    const fileExt = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+    
+    if (!validExtensions.includes(fileExt)) {
+      setError("Please upload an Excel spreadsheet (.xlsx, .xls, .csv) or document (.pdf).");
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setError("File size exceeds 15MB limit. Please upload a smaller file.");
+      return;
+    }
+
+    setError("");
+    setAttachedFile({
+      name: file.name,
+      size: (file.size / 1024).toFixed(1) + " KB",
+    });
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFileData(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileChange(e.dataTransfer.files[0]);
+    }
+  };
+
   const handleClearReportForm = () => {
+    setReportType("Roadmap Monthly Report");
     setBusinessSummary("");
     setRevenueThisMonth("");
     setChallengesFaced("");
     setNextStepsPlan("");
+    setAttachedFile(null);
+    setFileData(null);
     setError("");
   };
 
   const handleSubmitReport = async (e) => {
     e.preventDefault();
-    if (!businessSummary.trim()) { setError("Please provide a business progress summary."); return; }
-    if (!challengesFaced.trim()) { setError("Please detail any challenges or obstacles faced."); return; }
-    if (!nextStepsPlan.trim()) { setError("Please outline your next month's action plan."); return; }
+    if (!attachedFile && !businessSummary.trim()) {
+      setError("Please either attach your completed Excel report spreadsheet or provide a summary.");
+      return;
+    }
 
     setError("");
     setSubmitting(true);
@@ -516,16 +572,20 @@ function ReportsTab({ reports, user, onRefresh }) {
     try {
       await api.submitReport(
         {
+          reportType,
           reportMonth,
-          businessSummary,
+          businessSummary: businessSummary.trim() || (attachedFile ? `Submitted via Excel spreadsheet (${attachedFile.name})` : "Monthly Venture Report"),
           revenueThisMonth: parseFloat(revenueThisMonth) || 0,
-          challengesFaced,
-          nextStepsPlan,
+          challengesFaced: challengesFaced.trim(),
+          nextStepsPlan: nextStepsPlan.trim(),
+          fileName: attachedFile ? attachedFile.name : null,
+          fileSize: attachedFile ? attachedFile.size : null,
+          fileData: fileData || null,
         },
         user.userId
       );
 
-      setToast("🎉 Monthly business report submitted successfully!");
+      setToast("🎉 Monthly report & spreadsheet submitted successfully!");
       setShowSubmitModal(false);
       handleClearReportForm();
       await onRefresh();
@@ -542,46 +602,146 @@ function ReportsTab({ reports, user, onRefresh }) {
       <div className="topbar">
         <div className="topbar-title">
           <h1>My Monthly Reports</h1>
-          <p>Submit and track monthly venture reports for Enactus advisors & showcase evaluations</p>
+          <p>Download official Excel templates, fill them out, and submit completed spreadsheets for review</p>
         </div>
         <button className="btn-primary" onClick={() => setShowSubmitModal(true)}>
-          + Submit New Report
+          + Submit Report / Spreadsheet
         </button>
       </div>
 
       {toast && <div className="success-toast">{toast}</div>}
 
-      {/* Submission Modal */}
+      {/* ── Official Downloadable Templates Section ── */}
+      <div className="templates-download-section">
+        <div className="templates-header">
+          <div>
+            <h2 className="templates-section-title">📊 Official Enactus Excel Report Templates</h2>
+            <p className="templates-section-subtitle">
+              Download the required Excel workbook template for your reporting cycle, fill it in, and submit it below.
+            </p>
+          </div>
+        </div>
+
+        <div className="templates-grid">
+          {REPORT_TEMPLATES.map((tmpl) => (
+            <div key={tmpl.id} className="template-card">
+              <div className="template-card-top">
+                <div className="template-icon-wrapper">
+                  <span className="template-icon">📑</span>
+                </div>
+                <span className={`badge ${tmpl.badgeColor}`}>{tmpl.badge}</span>
+              </div>
+              
+              <h3 className="template-title">{tmpl.title}</h3>
+              <p className="template-desc">{tmpl.description}</p>
+              
+              <div className="template-footer">
+                <span className="template-filesize">💾 {tmpl.fileSize} • .xlsx</span>
+                <a
+                  href={tmpl.fileUrl}
+                  download={tmpl.fileName}
+                  className="btn-download-template"
+                  title={`Download ${tmpl.fileName}`}
+                >
+                  <span>📥 Download Template</span>
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Submission Modal ── */}
       {showSubmitModal && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content" style={{ maxWidth: 640 }}>
             <div className="modal-header">
-              <h2>Submit Monthly Business Report</h2>
+              <div>
+                <h2>Submit Monthly Venture Report</h2>
+                <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748b" }}>
+                  Upload your completed Excel report sheet or add brief venture highlights
+                </p>
+              </div>
               <button className="modal-close-btn" onClick={() => setShowSubmitModal(false)}>✕</button>
             </div>
 
             {error && <div className="error-msg">{error}</div>}
 
             <form onSubmit={handleSubmitReport}>
-              <div className="form-group">
-                <label>Submission Period (e.g. 2026-04)</label>
-                <input
-                  type="month"
-                  value={reportMonth}
-                  onChange={e => setReportMonth(e.target.value)}
-                  required
-                />
+              <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="form-group">
+                  <label>Report Type / Category</label>
+                  <select
+                    value={reportType}
+                    onChange={e => setReportType(e.target.value)}
+                    required
+                  >
+                    <option value="Roadmap Monthly Report">Enactus Roadmap Monthly Report</option>
+                    <option value="Financial Report">Financial Report / Statements</option>
+                    <option value="Marketing & Social Media Report">Marketing & Social Media Report</option>
+                    <option value="Overall Venture Progress">General / Combined Venture Report</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Reporting Period</label>
+                  <input
+                    type="month"
+                    value={reportMonth}
+                    onChange={e => setReportMonth(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
 
+              {/* ── Excel File Upload Dropzone ── */}
               <div className="form-group">
-                <label>Venture Progress & Key Activities</label>
-                <textarea
-                  rows={3}
-                  placeholder="Summarize key milestones achieved, customers acquired, product updates, or partnerships signed..."
-                  value={businessSummary}
-                  onChange={e => setBusinessSummary(e.target.value)}
-                  required
-                />
+                <label>Upload Completed Excel Spreadsheet (.xlsx, .xls, .csv)</label>
+                <div
+                  className={`file-dropzone ${dragActive ? "drag-active" : ""} ${attachedFile ? "has-file" : ""}`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById("report-file-input").click()}
+                >
+                  <input
+                    id="report-file-input"
+                    type="file"
+                    accept=".xlsx, .xls, .csv, .pdf"
+                    style={{ display: "none" }}
+                    onChange={e => handleFileChange(e.target.files[0])}
+                  />
+
+                  {attachedFile ? (
+                    <div className="file-preview-card" onClick={e => e.stopPropagation()}>
+                      <div className="file-preview-icon">📊</div>
+                      <div className="file-preview-info">
+                        <div className="file-preview-name">{attachedFile.name}</div>
+                        <div className="file-preview-size">{attachedFile.size} • Ready for submission</div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-remove-file"
+                        onClick={() => {
+                          setAttachedFile(null);
+                          setFileData(null);
+                        }}
+                        title="Remove attached file"
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="dropzone-prompt">
+                      <div className="dropzone-icon">📁</div>
+                      <div className="dropzone-title">
+                        <strong>Click to browse</strong> or drag & drop your Excel file here
+                      </div>
+                      <div className="dropzone-hint">Supports .xlsx, .xls, .csv, .pdf (Max 15MB)</div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="form-group">
@@ -598,28 +758,38 @@ function ReportsTab({ reports, user, onRefresh }) {
               </div>
 
               <div className="form-group">
-                <label>Challenges & Obstacles Faced</label>
+                <label>Venture Summary & Highlights (Optional if detailed in Excel)</label>
                 <textarea
-                  rows={3}
-                  placeholder="What difficulties arose? (e.g. supplier delays, regulatory compliance, technical bottlenecks, marketing conversion)..."
-                  value={challengesFaced}
-                  onChange={e => setChallengesFaced(e.target.value)}
-                  required
+                  rows={2}
+                  placeholder="Key milestones achieved, customers acquired, product updates, or key takeaways..."
+                  value={businessSummary}
+                  onChange={e => setBusinessSummary(e.target.value)}
                 />
               </div>
 
-              <div className="form-group">
-                <label>Next Month Action Plan & Priorities</label>
-                <textarea
-                  rows={3}
-                  placeholder="What are your key goals and support needs for next month?..."
-                  value={nextStepsPlan}
-                  onChange={e => setNextStepsPlan(e.target.value)}
-                  required
-                />
+              <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="form-group">
+                  <label>Challenges / Obstacles (Optional)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Any bottlenecks or support needed..."
+                    value={challengesFaced}
+                    onChange={e => setChallengesFaced(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Next Month Action Plan (Optional)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Key priorities for next month..."
+                    value={nextStepsPlan}
+                    onChange={e => setNextStepsPlan(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div className="modal-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="modal-actions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20 }}>
                 <button
                   type="button"
                   className="btn-clear-form"
@@ -646,11 +816,16 @@ function ReportsTab({ reports, user, onRefresh }) {
         </div>
       )}
 
+      {/* ── Reports History List ── */}
+      <div className="section-title-bar" style={{ marginTop: 28, marginBottom: 14 }}>
+        <h2>My Submitted Reports History</h2>
+      </div>
+
       {reports.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📄</div>
           <h3>No reports submitted yet</h3>
-          <p>Submit your first monthly report so advisors can provide feedback and track your venture's trajectory.</p>
+          <p>Download a template above, fill it out, and submit your first monthly report for review and advisor feedback.</p>
           <button className="btn-primary" onClick={() => setShowSubmitModal(true)} style={{ marginTop: 16 }}>
             Submit your first report
           </button>
@@ -662,6 +837,9 @@ function ReportsTab({ reports, user, onRefresh }) {
               <div className="report-header">
                 <div>
                   <span className="report-month-tag">📅 Period: {r.reportMonth}</span>
+                  <span className="badge badge-purple" style={{ marginLeft: 8 }}>
+                    {r.reportType || "Roadmap Progress"}
+                  </span>
                   <span
                     className={`badge ${
                       r.status === "Reviewed"
@@ -680,21 +858,53 @@ function ReportsTab({ reports, user, onRefresh }) {
                 </div>
               </div>
 
-              <div className="report-section">
-                <h4>Venture Summary</h4>
-                <p>{r.businessSummary}</p>
-              </div>
+              {/* Download Attached File Button if available */}
+              {r.fileName && (
+                <div className="attached-file-pill">
+                  <div className="attached-file-info">
+                    <span className="attached-file-icon">📊</span>
+                    <div>
+                      <div className="attached-file-title">Submitted Spreadsheet: <strong>{r.fileName}</strong></div>
+                      {r.fileSize && <div className="attached-file-meta">{r.fileSize}</div>}
+                    </div>
+                  </div>
+                  {r.fileData ? (
+                    <a
+                      href={r.fileData}
+                      download={r.fileName}
+                      className="btn-download-attachment"
+                    >
+                      📥 Download Sheet
+                    </a>
+                  ) : (
+                    <span className="file-stored-badge">📄 File on Record</span>
+                  )}
+                </div>
+              )}
 
-              <div className="report-grid">
+              {r.businessSummary && (
                 <div className="report-section">
-                  <h4>Challenges Faced</h4>
-                  <p>{r.challengesFaced || "None reported."}</p>
+                  <h4>Venture Summary / Notes</h4>
+                  <p>{r.businessSummary}</p>
                 </div>
-                <div className="report-section">
-                  <h4>Next Steps Plan</h4>
-                  <p>{r.nextStepsPlan || "None specified."}</p>
+              )}
+
+              {(r.challengesFaced || r.nextStepsPlan) && (
+                <div className="report-grid">
+                  {r.challengesFaced && (
+                    <div className="report-section">
+                      <h4>Challenges Faced</h4>
+                      <p>{r.challengesFaced}</p>
+                    </div>
+                  )}
+                  {r.nextStepsPlan && (
+                    <div className="report-section">
+                      <h4>Next Steps Plan</h4>
+                      <p>{r.nextStepsPlan}</p>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               {r.reviewNotes && (
                 <div className="advisor-feedback-box">
