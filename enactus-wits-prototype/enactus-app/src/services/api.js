@@ -329,6 +329,14 @@ export const REPORT_TEMPLATES = [
   },
 ];
 
+export function normalizeReportTypeEnum(type) {
+  if (!type) return "Overall";
+  const lower = String(type).toLowerCase();
+  if (lower.includes("finan")) return "Financial";
+  if (lower.includes("market")) return "Marketing";
+  return "Overall";
+}
+
 // ────────────────────────────────────────────────────────────
 // API IMPLEMENTATION
 // ────────────────────────────────────────────────────────────
@@ -978,7 +986,7 @@ export const api = {
 
       return (data || []).map(r => ({
         reportId: r.report_id,
-        reportType: r.report_type || r.content?.report_type || "Roadmap Progress",
+        reportType: r.content?.report_type || (r.report_type === "Financial" ? "Financial Report" : r.report_type === "Marketing" ? "Marketing & Social Media Report" : "Roadmap Monthly Report"),
         reportMonth: r.submission_period,
         businessSummary: r.content?.business_summary || "",
         revenueThisMonth: Number(r.content?.revenue_this_month || 0),
@@ -1004,7 +1012,7 @@ export const api = {
         const reviewer = users.find(u => Number(u.user_id) === Number(r.reviewed_by_user_id));
         return {
           reportId: r.report_id,
-          reportType: r.report_type || r.content?.report_type || "Roadmap Progress",
+          reportType: r.content?.report_type || (r.report_type === "Financial" ? "Financial Report" : r.report_type === "Marketing" ? "Marketing & Social Media Report" : "Roadmap Monthly Report"),
           reportMonth: r.submission_period,
           businessSummary: r.content?.business_summary || "",
           revenueThisMonth: Number(r.content?.revenue_this_month || 0),
@@ -1042,7 +1050,7 @@ export const api = {
         userName: r.app_user?.full_name,
         userEmail: r.app_user?.wits_email,
         businessStageId: r.app_user?.business_stage_id,
-        reportType: r.report_type || r.content?.report_type || "Roadmap Progress",
+        reportType: r.content?.report_type || (r.report_type === "Financial" ? "Financial Report" : r.report_type === "Marketing" ? "Marketing & Social Media Report" : "Roadmap Monthly Report"),
         reportMonth: r.submission_period,
         businessSummary: r.content?.business_summary || "",
         revenueThisMonth: Number(r.content?.revenue_this_month || 0),
@@ -1071,7 +1079,7 @@ export const api = {
         userName: user?.full_name || "Member",
         userEmail: user?.wits_email || "—",
         businessStageId: user?.business_stage_id,
-        reportType: r.report_type || r.content?.report_type || "Roadmap Progress",
+        reportType: r.content?.report_type || (r.report_type === "Financial" ? "Financial Report" : r.report_type === "Marketing" ? "Marketing & Social Media Report" : "Roadmap Monthly Report"),
         reportMonth: r.submission_period,
         businessSummary: r.content?.business_summary || "",
         revenueThisMonth: Number(r.content?.revenue_this_month || 0),
@@ -1089,8 +1097,9 @@ export const api = {
   },
 
   async submitReport(reportData, userId) {
+    const dbReportType = normalizeReportTypeEnum(reportData.reportType);
     const content = {
-      report_type: reportData.reportType || "Roadmap Progress",
+      report_type: reportData.reportType || "Roadmap Monthly Report",
       business_summary: reportData.businessSummary || "",
       revenue_this_month: parseFloat(reportData.revenueThisMonth) || 0.0,
       challenges_faced: reportData.challengesFaced || "",
@@ -1105,7 +1114,7 @@ export const api = {
         .from("report")
         .insert({
           user_id: userId,
-          report_type: reportData.reportType || "Overall",
+          report_type: dbReportType,
           submission_period: reportData.reportMonth,
           content,
           status: "Pending",
