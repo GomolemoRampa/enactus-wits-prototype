@@ -101,6 +101,7 @@ export default function App() {
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
+    setPendingUser(user);
     if (user.roleId === 2 || user.roleId === 3 || user.roleId === 4) {
       navigate("admin-dashboard");
     } else if (user.status === "Pending") {
@@ -114,11 +115,13 @@ export default function App() {
 
   const handleRegisterSuccess = (userData) => {
     setPendingUser(userData);
+    setCurrentUser(userData);
     navigate("profile-setup");
   };
 
   const handleProfileComplete = (completedUser) => {
     setCurrentUser(completedUser);
+    setPendingUser(null);
     if (completedUser.status === "Pending") {
       navigate("pending-approval");
     } else {
@@ -163,18 +166,28 @@ export default function App() {
       )}
       {page === "profile-setup" && (
         <ProfileSetup
-          pendingUser={pendingUser}
+          pendingUser={pendingUser || currentUser}
+          currentUser={currentUser}
           onComplete={handleProfileComplete}
           onBack={() => navigate("login")}
         />
       )}
-      {page === "member-dashboard" && currentUser && (
-        <MemberDashboard user={currentUser} onLogout={handleLogout} />
+      {page === "member-dashboard" && (
+        currentUser ? (
+          <MemberDashboard user={currentUser} onLogout={handleLogout} />
+        ) : (
+          <Login onLogin={handleLoginSuccess} onGoRegister={() => navigate("register")} />
+        )
       )}
-      {page === "admin-dashboard" && currentUser && (
-        <AdminDashboard user={currentUser} onLogout={handleLogout} />
+      {page === "admin-dashboard" && (
+        currentUser ? (
+          <AdminDashboard user={currentUser} onLogout={handleLogout} />
+        ) : (
+          <Login onLogin={handleLoginSuccess} onGoRegister={() => navigate("register")} />
+        )
       )}
-      {page === "pending-approval" && currentUser && (
+      {page === "pending-approval" && (
+        currentUser ? (
         <div className="auth-page">
           <div className="auth-card" style={{ maxWidth: 500, textAlign: "center" }}>
             <div className="auth-logo" style={{ justifyContent: "center", marginBottom: 24 }}>
@@ -216,6 +229,9 @@ export default function App() {
             </button>
           </div>
         </div>
+        ) : (
+          <Login onLogin={handleLoginSuccess} onGoRegister={() => navigate("register")} />
+        )
       )}
     </div>
   );

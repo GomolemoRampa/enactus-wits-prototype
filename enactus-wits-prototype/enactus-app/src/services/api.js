@@ -588,6 +588,10 @@ export const api = {
       const column = userId ? "user_id" : "auth_user_id";
       const value  = userId ?? authUserId;
 
+      if (!value) {
+        throw new Error("Unable to identify user profile to update. Please sign in again.");
+      }
+
       const { data, error } = await supabase
         .from("app_user")
         .update({
@@ -604,14 +608,17 @@ export const api = {
 
     // Local fallback
     const users = getStored(LOCAL_STORAGE_KEYS.APP_USERS, INITIAL_APP_USERS);
-    const idx = users.findIndex(u => Number(u.user_id) === Number(userId));
+    const idx = users.findIndex(
+      u => (userId && Number(u.user_id) === Number(userId)) ||
+           (authUserId && u.auth_user_id === authUserId)
+    );
     if (idx !== -1) {
       users[idx] = {
         ...users[idx],
         business_stage_id: profileData.businessStageId,
         cell_number: profileData.phone,
-        bio: profileData.bio,
-        business_idea: profileData.businessIdea,
+        bio: profileData.bio !== undefined ? profileData.bio : users[idx].bio,
+        business_idea: profileData.businessIdea !== undefined ? profileData.businessIdea : users[idx].business_idea,
       };
       setStored(LOCAL_STORAGE_KEYS.APP_USERS, users);
       return users[idx];

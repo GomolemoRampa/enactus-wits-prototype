@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { BUSINESS_STAGES, api } from "../services/api";
 
-export default function ProfileSetup({ pendingUser, onComplete, onBack }) {
+export default function ProfileSetup({ pendingUser, currentUser, onComplete, onBack }) {
   const [phone, setPhone] = useState("");
   const [selectedStage, setSelectedStage] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const activeUser = pendingUser || currentUser;
 
   const handleReset = () => {
     setPhone("");
@@ -14,18 +16,29 @@ export default function ProfileSetup({ pendingUser, onComplete, onBack }) {
   };
 
   const handleSubmit = async () => {
-    if (!selectedStage) { setError("Please select your current business stage."); return; }
+    if (!activeUser) {
+      setError("Active session not found. Please sign in or register again.");
+      return;
+    }
+    if (!selectedStage) {
+      setError("Please select your current business stage.");
+      return;
+    }
     setError("");
     setLoading(true);
 
     try {
-      const updated = await api.updateProfile(pendingUser.userId, pendingUser.authUserId, {
-        phone,
-        businessStageId: selectedStage,
-      });
+      const updated = await api.updateProfile(
+        activeUser.userId ?? null,
+        activeUser.authUserId ?? null,
+        {
+          phone,
+          businessStageId: selectedStage,
+        }
+      );
 
       const completedUser = {
-        ...pendingUser,
+        ...activeUser,
         phone,
         businessStageId: selectedStage,
         ...(updated || {}),
