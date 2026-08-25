@@ -35,7 +35,14 @@ export default function App() {
             // Only navigate if we're currently on the login page (avoid overriding active nav)
             setPage(prev => {
               if (prev === "login" || prev === "register") {
-                return isAdmin ? "admin-dashboard" : "member-dashboard";
+                if (isAdmin) return "admin-dashboard";
+                if (user.status === "Pending") {
+                  return user.businessStageId ? "pending-approval" : "profile-setup";
+                }
+                if (user.status === "Rejected") {
+                  return "pending-approval";
+                }
+                return "member-dashboard";
               }
               return prev;
             });
@@ -51,7 +58,15 @@ export default function App() {
         if (restoredUser) {
           setCurrentUser(restoredUser);
           const isAdmin = restoredUser.roleId === 2 || restoredUser.roleId === 3 || restoredUser.roleId === 4;
-          navigate(isAdmin ? "admin-dashboard" : "member-dashboard", false);
+          if (isAdmin) {
+            navigate("admin-dashboard", false);
+          } else if (restoredUser.status === "Pending") {
+            navigate(restoredUser.businessStageId ? "pending-approval" : "profile-setup", false);
+          } else if (restoredUser.status === "Rejected") {
+            navigate("pending-approval", false);
+          } else {
+            navigate("member-dashboard", false);
+          }
         }
         setSessionLoading(false);
       } else {
@@ -88,6 +103,10 @@ export default function App() {
     setCurrentUser(user);
     if (user.roleId === 2 || user.roleId === 3 || user.roleId === 4) {
       navigate("admin-dashboard");
+    } else if (user.status === "Pending") {
+      navigate(user.businessStageId ? "pending-approval" : "profile-setup");
+    } else if (user.status === "Rejected") {
+      navigate("pending-approval");
     } else {
       navigate("member-dashboard");
     }
@@ -100,7 +119,11 @@ export default function App() {
 
   const handleProfileComplete = (completedUser) => {
     setCurrentUser(completedUser);
-    navigate("member-dashboard");
+    if (completedUser.status === "Pending") {
+      navigate("pending-approval");
+    } else {
+      navigate("member-dashboard");
+    }
   };
 
   const handleLogout = async () => {
@@ -150,6 +173,49 @@ export default function App() {
       )}
       {page === "admin-dashboard" && currentUser && (
         <AdminDashboard user={currentUser} onLogout={handleLogout} />
+      )}
+      {page === "pending-approval" && currentUser && (
+        <div className="auth-page">
+          <div className="auth-card" style={{ maxWidth: 500, textAlign: "center" }}>
+            <div className="auth-logo" style={{ justifyContent: "center", marginBottom: 24 }}>
+              <div className="auth-logo-mark">EW</div>
+              <div className="auth-logo-text" style={{ textAlign: "left" }}>
+                <h1>Enactus Wits</h1>
+                <p>Support System</p>
+              </div>
+            </div>
+            
+            {currentUser.status === "Rejected" ? (
+              <>
+                <div className="status-icon-rejected" style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+                <h2>Account Registration Rejected</h2>
+                <p className="auth-sub" style={{ marginTop: 12, fontSize: 15, lineHeight: "1.5" }}>
+                  Your account registration request has been reviewed and rejected by the Enactus Wits Administration.
+                </p>
+                <p style={{ color: "#f43f5e", fontSize: 13, marginTop: 16, padding: 12, background: "rgba(244, 63, 94, 0.08)", border: "1px solid rgba(244, 63, 94, 0.2)", borderRadius: 8 }}>
+                  If you believe this was in error, please contact the Enactus Wits Executive Committee or your Faculty Advisor.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="status-icon-pending" style={{ fontSize: 48, marginBottom: 16 }}>⌛</div>
+                <h2>Awaiting Admin Approval</h2>
+                <p className="auth-sub" style={{ marginTop: 12, fontSize: 15, lineHeight: "1.5" }}>
+                  Thank you for completing your founder profile, <strong>{currentUser.fullName}</strong>!
+                </p>
+                <p style={{ color: "var(--text-muted)", fontSize: 14, margin: "16px 0", lineHeight: "1.5" }}>
+                  Your account is currently <strong>Pending</strong> administrator review. 
+                  Enactus Wits executives will review your business details and approve your registration soon. 
+                  You will gain access to the Member Dashboard once approved.
+                </p>
+              </>
+            )}
+
+            <button className="btn-secondary" onClick={handleLogout} style={{ marginTop: 24, width: "100%" }}>
+              Sign out & Back to Login
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

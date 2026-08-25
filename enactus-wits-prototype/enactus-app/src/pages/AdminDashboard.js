@@ -293,9 +293,10 @@ function Overview({ members, announcements, events, reports, setActiveTab }) {
 // ────────────────────────────────────────────────────────────
 // TAB 2: MEMBERS DIRECTORY
 // ────────────────────────────────────────────────────────────
-function MembersTab({ members }) {
+function MembersTab({ members, onRefresh }) {
   const [search, setSearch] = useState("");
   const [filterStage, setFilterStage] = useState("all");
+  const [actionLoading, setActionLoading] = useState(false);
 
   const filtered = members.filter(m => {
     const matchSearch =
@@ -305,6 +306,36 @@ function MembersTab({ members }) {
     const matchStage = filterStage === "all" || String(m.businessStageId) === String(filterStage);
     return matchSearch && matchStage;
   });
+
+  const handleApprove = async (userId, authUserId) => {
+    if (actionLoading) return;
+    if (window.confirm("Are you sure you want to approve this member registration?")) {
+      setActionLoading(true);
+      try {
+        await api.approveMember(userId, authUserId);
+        if (onRefresh) await onRefresh();
+      } catch (err) {
+        alert(err.message || "Failed to approve member.");
+      } finally {
+        setActionLoading(false);
+      }
+    }
+  };
+
+  const handleReject = async (userId, authUserId) => {
+    if (actionLoading) return;
+    if (window.confirm("Are you sure you want to reject this member registration?")) {
+      setActionLoading(true);
+      try {
+        await api.rejectMember(userId, authUserId);
+        if (onRefresh) await onRefresh();
+      } catch (err) {
+        alert(err.message || "Failed to reject member.");
+      } finally {
+        setActionLoading(false);
+      }
+    }
+  };
 
   return (
     <>
@@ -369,9 +400,35 @@ function MembersTab({ members }) {
                     <span className="badge badge-amber">{getStageName(m.businessStageId)}</span>
                   </td>
                   <td>
-                    <span className={`badge ${m.status === "Active" ? "badge-green" : "badge-gray"}`}>
-                      {m.status}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span className={`badge ${
+                        m.status === "Active" ? "badge-green" :
+                        m.status === "Pending" ? "badge-amber" :
+                        m.status === "Rejected" ? "badge-red" : "badge-gray"
+                      }`}>
+                        {m.status}
+                      </span>
+                      {m.status === "Pending" && (
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            className="btn-approve"
+                            onClick={() => handleApprove(m.userId, m.authUserId)}
+                            disabled={actionLoading}
+                            title="Approve Member"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            className="btn-reject"
+                            onClick={() => handleReject(m.userId, m.authUserId)}
+                            disabled={actionLoading}
+                            title="Reject Member"
+                          >
+                            ✗
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -1230,7 +1287,7 @@ export default function AdminDashboard({ user, onLogout }) {
           />
         );
       case "members":
-        return <MembersTab members={members} />;
+        return <MembersTab members={members} onRefresh={loadAdminData} />;
       case "announcements":
         return <AnnouncementsTab announcements={announcements} setActiveTab={navigateTab} />;
       case "compose":

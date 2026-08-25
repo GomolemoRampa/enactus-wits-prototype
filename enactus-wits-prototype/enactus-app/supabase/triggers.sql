@@ -11,16 +11,9 @@
 -- ────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
 RETURNS TRIGGER AS $$
-DECLARE
-  default_role_id bigint;
 BEGIN
-  -- Look up the 'Member' role_id from the role table
-  SELECT role_id INTO default_role_id
-  FROM public.role
-  WHERE role_name = 'Member'
-  LIMIT 1;
-
   -- Insert the app_user row (idempotent: skip if already exists)
+  -- Initially, role_id is NULL (no role assigned yet) and status is 'Pending' (awaiting admin approval)
   INSERT INTO public.app_user (
     auth_user_id,
     full_name,
@@ -37,8 +30,8 @@ BEGIN
       SPLIT_PART(NEW.email, '@', 1)
     ),
     NEW.email,
-    default_role_id,
-    'Active',
+    NULL,
+    'Pending',
     CURRENT_DATE
   )
   ON CONFLICT (auth_user_id) DO NOTHING;

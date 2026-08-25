@@ -53,9 +53,9 @@ create table if not exists app_user (
     auth_user_id      uuid not null unique references auth.users(id) on delete cascade,
     full_name         varchar(100) not null,
     wits_email        varchar(150) not null unique,
-    role_id           bigint not null references role(role_id),
+    role_id           bigint references role(role_id),
     business_stage_id bigint references business_stage(business_stage_id),
-    account_status    account_status not null default 'Active',
+    account_status    account_status not null default 'Pending',
     join_date         date not null default current_date,
     cell_number       varchar(15),
     last_login        timestamptz

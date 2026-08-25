@@ -2232,5 +2232,105 @@ h1, h2, h3, h4 {
   color: var(--primary-dark);
 }
 
+/* ── Approve/Reject buttons in Members Directory ── */
+.btn-approve {
+  background-color: var(--accent-emerald);
+  color: white;
+  border: none;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.btn-approve:hover:not(:disabled) {
+  background-color: var(--accent-emerald-dark);
+  transform: scale(1.1);
+}
+
+.btn-approve:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-reject {
+  background-color: var(--accent-rose);
+  color: white;
+  border: none;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.btn-reject:hover:not(:disabled) {
+  background-color: #e11d48;
+  transform: scale(1.1);
+}
+
+.btn-reject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Custom Status Badge Colors ── */
+.badge-red {
+  background-color: rgba(244, 63, 94, 0.12);
+  color: var(--accent-rose);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+}
+
+.badge-amber {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: var(--accent-gold-dark);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* ── Awaiting Approval status icons ── */
+.status-icon-pending, .status-icon-rejected {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 auto 24px;
+}
+
+.status-icon-pending {
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 2px solid rgba(245, 158, 11, 0.2);
+  color: var(--accent-gold);
+  animation: pulse-amber 2s infinite;
+}
+
+.status-icon-rejected {
+  background-color: rgba(244, 63, 94, 0.1);
+  border: 2px solid rgba(244, 63, 94, 0.2);
+  color: var(--accent-rose);
+}
+
+@keyframes pulse-amber {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
 
 

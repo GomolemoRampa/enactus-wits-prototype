@@ -431,8 +431,9 @@ export const api = {
         authUserId: data.user.id,
         fullName: userData.fullName,
         email: userData.email,
-        roleId: appUser?.role_id ?? 1,
+        roleId: appUser?.role_id ?? null,
         businessStageId: null,
+        status: appUser?.account_status ?? "Pending",
       };
     }
 
@@ -447,9 +448,9 @@ export const api = {
       auth_user_id: `mock-auth-${Date.now()}`,
       full_name: userData.fullName,
       wits_email: userData.email,
-      role_id: 1,
+      role_id: null,
       business_stage_id: null,
-      account_status: "Active",
+      account_status: "Pending",
       cell_number: "",
       bio: "",
       business_idea: "",
@@ -464,8 +465,9 @@ export const api = {
       authUserId: newUser.auth_user_id,
       fullName: newUser.full_name,
       email: newUser.wits_email,
-      roleId: 1,
+      roleId: null,
       businessStageId: null,
+      status: "Pending",
     };
   },
 
@@ -568,8 +570,9 @@ export const api = {
               authUserId: session.user.id,
               email: session.user.email,
               fullName: session.user.user_metadata?.full_name || session.user.email,
-              roleId: 1,
+              roleId: null,
               businessStageId: null,
+              status: "Pending",
             });
           }
         }
@@ -1184,7 +1187,7 @@ export const api = {
       const { data, error } = await supabase
         .from("app_user")
         .select("*")
-        .eq("role_id", 1)
+        .or("role_id.eq.1,role_id.is.null")
         .order("full_name");
 
       if (error) throw new Error(error.message);
@@ -1203,7 +1206,7 @@ export const api = {
 
     const users = getStored(LOCAL_STORAGE_KEYS.APP_USERS, INITIAL_APP_USERS);
     return users
-      .filter(u => u.role_id === 1)
+      .filter(u => u.role_id === 1 || u.role_id === null)
       .map(u => ({
         userId: u.user_id,
         fullName: u.full_name,
@@ -1248,9 +1251,72 @@ export const api = {
         flaggedForShowcase: m.is_flagged_for_showcase,
       }));
   },
+
+  async approveMember(userId, authUserId) {
+    if (isSupabaseConfigured() && supabase) {
+      const column = userId ? "user_id" : "auth_user_id";
+      const value = userId ?? authUserId;
+      const { data, error } = await supabase
+        .from("app_user")
+        .update({
+          account_status: "Active",
+          role_id: 1, // Set to Member
+        })
+        .eq(column, value)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    }
+
+    // Local fallback
+    const users = getStored(LOCAL_STORAGE_KEYS.APP_USERS, INITIAL_APP_USERS);
+    const idx = users.findIndex(u => Number(u.user_id) === Number(userId));
+    if (idx !== -1) {
+      users[idx] = {
+        ...users[idx],
+        account_status: "Active",
+        role_id: 1,
+      };
+      setStored(LOCAL_STORAGE_KEYS.APP_USERS, users);
+      return users[idx];
+    }
+    return null;
+  },
+
+  async rejectMember(userId, authUserId) {
+    if (isSupabaseConfigured() && supabase) {
+      const column = userId ? "user_id" : "auth_user_id";
+      const value = userId ?? authUserId;
+      const { data, error } = await supabase
+        .from("app_user")
+        .update({
+          account_status: "Rejected",
+        })
+        .eq(column, value)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return data;
+    }
+
+    // Local fallback
+    const users = getStored(LOCAL_STORAGE_KEYS.APP_USERS, INITIAL_APP_USERS);
+    const idx = users.findIndex(u => Number(u.user_id) === Number(userId));
+    if (idx !== -1) {
+      users[idx] = {
+        ...users[idx],
+        account_status: "Rejected",
+      };
+      setStored(LOCAL_STORAGE_KEYS.APP_USERS, users);
+      return users[idx];
+    }
+    return null;
+  },
 };
 
 export function getRoleName(roleId) {
+  if (roleId === null || roleId === undefined) return "Pending Approval";
   return ROLES.find(r => r.role_id === Number(roleId))?.roleName || "Member";
 }
 

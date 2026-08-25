@@ -33,14 +33,9 @@ ALTER TABLE public.app_user
 -- 3a. Auto-provision app_user on new auth sign-up (email/password + Azure SSO)
 CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
 RETURNS TRIGGER AS $$
-DECLARE
-  default_role_id bigint;
 BEGIN
-  SELECT role_id INTO default_role_id
-  FROM public.role
-  WHERE role_name = 'Member'
-  LIMIT 1;
-
+  -- Insert the app_user row (idempotent: skip if already exists)
+  -- Initially, role_id is NULL (no role assigned yet) and status is 'Pending' (awaiting admin approval)
   INSERT INTO public.app_user (
     auth_user_id,
     full_name,
@@ -57,8 +52,8 @@ BEGIN
       SPLIT_PART(NEW.email, '@', 1)
     ),
     NEW.email,
-    default_role_id,
-    'Active',
+    NULL,
+    'Pending',
     CURRENT_DATE
   )
   ON CONFLICT (auth_user_id) DO NOTHING;
@@ -126,7 +121,13 @@ CREATE TRIGGER trg_flag_late_report
   FOR EACH ROW EXECUTE FUNCTION public.flag_late_report();
 
 -- ────────────────────────────────────────────────────────────
--- 4. VERIFY: Quick sanity check — shows existing tables
+-- 4. ALTER APP_USER: Make role_id nullable and set default status to Pending
+-- ────────────────────────────────────────────────────────────
+ALTER TABLE public.app_user ALTER COLUMN role_id DROP NOT NULL;
+ALTER TABLE public.app_user ALTER COLUMN account_status SET DEFAULT 'Pending'::account_status;
+
+-- ────────────────────────────────────────────────────────────
+-- 5. VERIFY: Quick sanity check — shows existing tables
 -- ────────────────────────────────────────────────────────────
 SELECT table_name
 FROM information_schema.tables
