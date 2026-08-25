@@ -2020,4 +2020,217 @@ h1, h2, h3, h4 {
   border: 1px solid #e9d5ff;
 }
 
+/* ────────────────────────────────────────────────────────────
+   POWER BI SYSTEM-GENERATED REPORTS PAGE
+   ──────────────────────────────────────────────────────────── */
+.reports-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.reports-header {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.reports-header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.reports-header h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+
+.reports-pill {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #f59e0b18, #f59e0b30);
+  color: #b45309;
+  border: 1px solid #fcd34d;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.reports-header p {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.reports-tabs {
+  display: flex;
+  gap: 10px;
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.reports-tabs .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reports-tabs .tab:hover {
+  background: #f8fafc;
+  color: var(--primary-dark);
+  border-color: var(--border-subtle);
+}
+
+.reports-tabs .tab.tab--active {
+  background: var(--primary-dark);
+  color: #ffffff;
+  border-color: var(--primary-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+.reports-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #f8fafc;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.reports-page-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reports-description {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.reports-external-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary-light);
+  text-decoration: none;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+
+.reports-external-link:hover {
+  background: #eff6ff;
+  text-decoration: underline;
+}
+
+.reports-frame-wrapper {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.reports-frame-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 5;
+}
+
+.reports-frame-loading p {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.reports-frame {
+  width: 100%;
+  min-height: 820px;
+}
+
+.reports-frame iframe {
+  width: 100%;
+  height: 820px;
+  border: none;
+  display: block;
+}
+
+.reports-message-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 40px 24px;
+  text-align: center;
+  max-width: 540px;
+  margin: 40px auto;
+  box-shadow: var(--shadow-sm);
+}
+
+.reports-message-card.warning {
+  border-color: #fed7aa;
+  background: #fffbf5;
+}
+
+.reports-message-icon {
+  font-size: 40px;
+  margin-bottom: 16px;
+}
+
+.reports-message-card h3 {
+  font-size: 18px;
+  color: var(--primary-dark);
+  margin-bottom: 8px;
+}
+
+.reports-message-card p {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.reports-role-badge {
+  margin-top: 16px;
+  display: inline-block;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+
+.reports-role-badge span {
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import Reports from "./admin/Reports";
 import {
   api,
   getRoleName,
@@ -31,6 +32,7 @@ const ADMIN_TAB_LABELS = {
   compose: "Send Announcement",
   events: "Events Management",
   reports: "Review Reports",
+  "system-reports": "System-Generated Reports",
 };
 
 function UndoToast({ toast, onDismiss }) {
@@ -116,6 +118,11 @@ function Sidebar({ user, activeTab, setActiveTab, onLogout, pendingReportsCount 
       icon: "📄",
       label: "Review Reports",
       badge: pendingReportsCount > 0 ? pendingReportsCount : null,
+    },
+    {
+      id: "system-reports",
+      icon: "📊",
+      label: "System Reports",
     },
   ];
 
@@ -1232,6 +1239,8 @@ export default function AdminDashboard({ user, onLogout }) {
         return <EventsManagementTab events={events} user={user} onRefresh={loadAdminData} />;
       case "reports":
         return <ReportsReviewTab reports={reports} user={user} onRefresh={loadAdminData} />;
+      case "system-reports":
+        return <Reports user={user} />;
       default:
         return null;
     }
