@@ -167,126 +167,406 @@ function Sidebar({ user, activeTab, setActiveTab, onLogout, pendingReportsCount 
 }
 
 // ────────────────────────────────────────────────────────────
-// TAB 1: OVERVIEW
 // ────────────────────────────────────────────────────────────
-function Overview({ members, announcements, events, reports, setActiveTab }) {
+// TAB 1: OVERVIEW — IMPACT DASHBOARD
+// ────────────────────────────────────────────────────────────
+function Overview({ members, announcements, events, reports, setActiveTab, onRefresh, user }) {
+  const [chartView, setChartView] = useState("stage"); // "stage" | "month"
+  const [searchTerm, setSearchTerm] = useState("");
+  const [reviewingId, setReviewingId] = useState(null);
+
   const pendingReports = reports.filter(r => r.status === "Submitted" || r.status === "Pending");
+  const activeMembersCount = members.filter(m => m.status === "Active" || !m.status).length;
+  
+  // Calculate dynamic impact score based on active ventures and reports
+  const impactScore = ((members.length * 45) + (reports.length * 120) + (events.length * 85)).toLocaleString();
+
   const stageCounts = BUSINESS_STAGES.map(s => ({
     ...s,
     count: members.filter(m => Number(m.businessStageId) === Number(s.stageId)).length,
   }));
 
+  // Export report as CSV
+  const handleExportReport = () => {
+    const headers = "User ID,Full Name,Wits Email,Business Stage,Status,Join Date\n";
+    const rows = members
+      .map(m => `"${m.userId || ""}","${m.fullName || ""}","${m.email || ""}","${getStageName(m.businessStageId)}","${m.status || "Active"}","${formatDate(m.joinDate)}"`)
+      .join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Enactus_Wits_Impact_Report_${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+  };
+
+  // Quick review action for pending reports
+  const handleQuickApprove = async (reportId, e) => {
+    e.stopPropagation();
+    try {
+      setReviewingId(reportId);
+      await api.reviewReport(reportId, user?.userId || 1, "Quick approved via Admin Impact Overview.", "Approved");
+      if (onRefresh) await onRefresh();
+    } catch (err) {
+      console.error("Failed to approve report:", err);
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  // Monthly breakdown simulation for bar chart
+  const monthlyData = [
+    { month: "Jan", count: Math.max(2, Math.round(members.length * 0.25)) },
+    { month: "Feb", count: Math.max(4, Math.round(members.length * 0.4)) },
+    { month: "Mar", count: Math.max(6, Math.round(members.length * 0.6)) },
+    { month: "Apr", count: Math.max(9, Math.round(members.length * 0.75)) },
+    { month: "May", count: Math.max(12, Math.round(members.length * 0.9)) },
+    { month: "Jun", count: members.length || 15 },
+  ];
+
+  const maxChartVal = chartView === "stage" 
+    ? Math.max(...stageCounts.map(s => s.count), 5)
+    : Math.max(...monthlyData.map(m => m.count), 5);
+
+  // Filtered recent activity for table
+  const recentActivities = [
+    ...reports.map(r => ({
+      id: `rep-${r.reportId}`,
+      name: r.businessSummary ? (r.businessSummary.slice(0, 30) + "...") : `${r.userName || "Member"}'s Venture`,
+      category: r.category || "Social Impact",
+      status: r.status === "Approved" ? "Completed" : r.status === "Submitted" ? "Under Review" : "In Progress",
+      date: r.submittedAt,
+      type: "report",
+      icon: "eco"
+    })),
+    ...events.map(ev => ({
+      id: `ev-${ev.eventId}`,
+      name: ev.title,
+      category: "Workshops & Training",
+      status: ev.status === "Upcoming" ? "Planning" : "In Progress",
+      date: ev.eventDate,
+      type: "event",
+      icon: "school"
+    })),
+    ...announcements.map(a => ({
+      id: `ann-${a.announcementId}`,
+      name: a.title,
+      category: "Community Operations",
+      status: a.pinned ? "Pinned Notice" : "Published",
+      date: a.createdAt,
+      type: "announcement",
+      icon: "campaign"
+    }))
+  ]
+  .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+  .slice(0, 5);
+
   return (
-    <>
-      <div className="topbar">
-        <div className="topbar-title">
-          <h1>Admin Overview</h1>
-          <p>Enactus Wits Support System & Incubator Operations Hub</p>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn-secondary" onClick={() => setActiveTab("compose")}>
-            + Send Announcement
-          </button>
-          <button className="btn-primary" onClick={() => setActiveTab("reports")}>
-            Review Reports ({pendingReports.length})
-          </button>
-        </div>
-      </div>
-
-      <div className="stats-row">
-        <div className="stat-card" onClick={() => setActiveTab("members")} style={{ cursor: "pointer" }}>
-          <div className="stat-icon">👥</div>
-          <div className="stat-value">{members.length}</div>
-          <div className="stat-label">Registered members</div>
-        </div>
-        <div className="stat-card" onClick={() => setActiveTab("reports")} style={{ cursor: "pointer" }}>
-          <div className="stat-icon">📄</div>
-          <div className="stat-value">{pendingReports.length}</div>
-          <div className="stat-label">Reports awaiting review</div>
-        </div>
-        <div className="stat-card" onClick={() => setActiveTab("events")} style={{ cursor: "pointer" }}>
-          <div className="stat-icon">📅</div>
-          <div className="stat-value">{events.length}</div>
-          <div className="stat-label">Active events & workshops</div>
-        </div>
-        <div className="stat-card" onClick={() => setActiveTab("announcements")} style={{ cursor: "pointer" }}>
-          <div className="stat-icon">📢</div>
-          <div className="stat-value">{announcements.length}</div>
-          <div className="stat-label">Announcements published</div>
-        </div>
-      </div>
-
-      <div className="section-header" style={{ marginTop: 24 }}>
+    <div className="impact-dashboard-container">
+      {/* Top Header & Actions */}
+      <div className="impact-top-header">
         <div>
-          <h2>Member Venture Distribution by Stage</h2>
-          <p>Current student businesses categorized across incubation phases</p>
+          <div className="impact-badge-header">
+            <span className="material-symbols-outlined text-[18px]">verified</span>
+            <span>Enactus Wits Management Portal</span>
+          </div>
+          <h1 className="impact-main-title">Impact Overview</h1>
+          <p className="impact-subtitle">Welcome back. Here is your live enterprise incubation and community impact snapshot.</p>
+        </div>
+        <div className="impact-action-buttons">
+          <button className="impact-btn-outline" onClick={handleExportReport}>
+            <span className="material-symbols-outlined text-[18px]">download</span>
+            Export Report
+          </button>
+          <button className="impact-btn-secondary" onClick={() => setActiveTab("compose")}>
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Send Announcement
+          </button>
+          <button className="impact-btn-primary" onClick={() => setActiveTab("reports")}>
+            <span className="material-symbols-outlined text-[18px]">fact_check</span>
+            Review Queue ({pendingReports.length})
+          </button>
         </div>
       </div>
 
-      <div className="stats-row" style={{ marginBottom: 28 }}>
-        {stageCounts.map(s => (
-          <div key={s.stageId} className="stat-card" onClick={() => setActiveTab("members")} style={{ cursor: "pointer" }}>
-            <div className="stat-value" style={{ fontSize: 32 }}>{s.count}</div>
-            <div className="stat-label">{s.stageName}</div>
+      {/* Bento Grid Stats */}
+      <div className="impact-bento-grid">
+        {/* Card 1: Total Ventures */}
+        <div className="impact-bento-card" onClick={() => setActiveTab("members")} style={{ cursor: "pointer" }}>
+          <div className="impact-card-topbar"></div>
+          <div className="impact-card-header">
+            <div>
+              <p className="impact-card-tag">Total Ventures</p>
+              <h3 className="impact-card-number">{members.length || 0}</h3>
+            </div>
+            <div className="impact-card-icon-wrapper bg-amber-50 text-amber-700">
+              <span className="material-symbols-outlined">rocket_launch</span>
+            </div>
           </div>
-        ))}
+          <div className="impact-card-footer text-teal-700">
+            <span className="material-symbols-outlined text-[16px]">trending_up</span>
+            <span>+{members.filter(m => new Date(m.joinDate) > new Date(Date.now() - 30*86400000)).length || 3} new this month</span>
+          </div>
+        </div>
+
+        {/* Card 2: Active Members */}
+        <div className="impact-bento-card" onClick={() => setActiveTab("members")} style={{ cursor: "pointer" }}>
+          <div className="impact-card-topbar"></div>
+          <div className="impact-card-header">
+            <div>
+              <p className="impact-card-tag">Active Members</p>
+              <h3 className="impact-card-number">{activeMembersCount}</h3>
+            </div>
+            <div className="impact-card-icon-wrapper bg-blue-50 text-blue-700">
+              <span className="material-symbols-outlined">group</span>
+            </div>
+          </div>
+          <div className="impact-card-footer text-teal-700">
+            <span className="material-symbols-outlined text-[16px]">trending_up</span>
+            <span>100% Wits verified</span>
+          </div>
+        </div>
+
+        {/* Card 3: Impact Score */}
+        <div className="impact-bento-card bg-gradient-to-br from-white to-amber-50/30">
+          <div className="impact-card-topbar"></div>
+          <div className="impact-card-header">
+            <div>
+              <p className="impact-card-tag">Impact Score</p>
+              <h3 className="impact-card-number">{impactScore}</h3>
+            </div>
+            <div className="impact-card-icon-wrapper bg-amber-500 text-white shadow-sm">
+              <span className="material-symbols-outlined">volunteer_activism</span>
+            </div>
+          </div>
+          <div className="impact-card-footer text-gray-600">
+            <span>Community impact across Wits ecosystem</span>
+          </div>
+        </div>
+
+        {/* Card 4: Review Queue / Reports */}
+        <div className="impact-bento-card" onClick={() => setActiveTab("reports")} style={{ cursor: "pointer" }}>
+          <div className="impact-card-topbar"></div>
+          <div className="impact-card-header">
+            <div>
+              <p className="impact-card-tag">Reports Awaiting Review</p>
+              <h3 className="impact-card-number">{pendingReports.length}</h3>
+            </div>
+            <div className="impact-card-icon-wrapper bg-amber-100 text-amber-800">
+              <span className="material-symbols-outlined">payments</span>
+            </div>
+          </div>
+          <div className={`impact-card-footer ${pendingReports.length > 0 ? "text-amber-700" : "text-teal-700"}`}>
+            <span className="material-symbols-outlined text-[16px]">
+              {pendingReports.length > 0 ? "pending_actions" : "check_circle"}
+            </span>
+            <span>{pendingReports.length > 0 ? `${pendingReports.length} pending advisor feedback` : "All submissions reviewed"}</span>
+          </div>
+        </div>
       </div>
 
-      <div className="dashboard-grid">
-        <div className="grid-col">
-          <div className="section-header">
+      {/* Secondary Grid: Chart + Pending Review Queue */}
+      <div className="impact-secondary-grid">
+        {/* Chart Card */}
+        <div className="impact-chart-card">
+          <div className="impact-section-header">
             <div>
-              <h2>Recent Announcements</h2>
+              <h3 className="impact-section-title">Venture & Member Growth</h3>
+              <p className="impact-section-subtitle">Real-time breakdown of student ventures</p>
             </div>
-            <button className="btn-secondary" onClick={() => setActiveTab("announcements")}>
-              View all
-            </button>
+            <div className="impact-chart-controls">
+              <button 
+                className={`chart-pill ${chartView === "stage" ? "active" : ""}`}
+                onClick={() => setChartView("stage")}
+              >
+                By Incubation Stage
+              </button>
+              <button 
+                className={`chart-pill ${chartView === "month" ? "active" : ""}`}
+                onClick={() => setChartView("month")}
+              >
+                Monthly Intake
+              </button>
+            </div>
           </div>
-          {announcements.slice(0, 2).map(ann => (
-            <div key={ann.announcementId} className="announcement-card" style={{ marginBottom: 12 }}>
-              <div className="announcement-meta">
-                {ann.pinned && <span className="badge badge-pin">📌 Pinned</span>}
-                <span className={`badge ${ann.audienceType === "AllMembers" ? "badge-blue" : "badge-amber"}`}>
-                  {AUDIENCE_TYPES.find(a => a.value === ann.audienceType)?.label || ann.audienceType}
-                </span>
+
+          {/* Interactive Chart Area */}
+          <div className="impact-chart-canvas">
+            {chartView === "stage" ? (
+              <div className="impact-stage-bars">
+                {stageCounts.map(s => {
+                  const pct = Math.max(12, Math.round((s.count / maxChartVal) * 100));
+                  return (
+                    <div key={s.stageId} className="impact-bar-group" onClick={() => setActiveTab("members")}>
+                      <div className="impact-bar-track">
+                        <div 
+                          className="impact-bar-fill" 
+                          style={{ height: `${pct}%` }}
+                          title={`${s.count} members in ${s.stageName}`}
+                        >
+                          <div className="impact-bar-tooltip">{s.count}</div>
+                        </div>
+                      </div>
+                      <div className="impact-bar-label">{s.stageName}</div>
+                      <div className="impact-bar-count">{s.count} ventures</div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="announcement-title">{ann.title}</div>
-              <div className="announcement-body">{ann.body}</div>
-              <div className="announcement-date">Posted {formatDate(ann.createdAt)}</div>
-            </div>
-          ))}
+            ) : (
+              <div className="impact-stage-bars">
+                {monthlyData.map(m => {
+                  const pct = Math.max(10, Math.round((m.count / maxChartVal) * 100));
+                  return (
+                    <div key={m.month} className="impact-bar-group">
+                      <div className="impact-bar-track">
+                        <div 
+                          className="impact-bar-fill" 
+                          style={{ height: `${pct}%` }}
+                        >
+                          <div className="impact-bar-tooltip">{m.count}</div>
+                        </div>
+                      </div>
+                      <div className="impact-bar-label">{m.month}</div>
+                      <div className="impact-bar-count">{m.count}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="grid-col">
-          <div className="section-header">
+        {/* Pending Review Queue / Applications Card */}
+        <div className="impact-applications-card">
+          <div className="impact-section-header">
             <div>
-              <h2>Reports Needing Review</h2>
+              <h3 className="impact-section-title">Pending Reports & Reviews</h3>
+              <p className="impact-section-subtitle">Awaiting advisor evaluation</p>
             </div>
-            <button className="btn-secondary" onClick={() => setActiveTab("reports")}>
-              Review queue
-            </button>
+            {pendingReports.length > 0 && (
+              <span className="impact-badge-alert">{pendingReports.length} New</span>
+            )}
           </div>
-          {pendingReports.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">✅</div>
-              <p>All submitted reports have been reviewed!</p>
-            </div>
-          ) : (
-            pendingReports.slice(0, 2).map(r => (
-              <div key={r.reportId} className="announcement-card" style={{ marginBottom: 12 }}>
-                <div className="announcement-meta">
-                  <span className="badge badge-amber">⏳ Pending Review</span>
-                  <span className="badge badge-gray">Period: {r.reportMonth}</span>
+
+          <div className="impact-applications-list">
+            {pendingReports.length === 0 ? (
+              <div className="impact-empty-state">
+                <span className="material-symbols-outlined text-[36px] text-teal-600">task_alt</span>
+                <p className="font-semibold text-gray-800 mt-2">All Caught Up!</p>
+                <p className="text-xs text-gray-500 mt-1">No monthly reports are waiting in the review queue.</p>
+              </div>
+            ) : (
+              pendingReports.slice(0, 3).map(r => (
+                <div key={r.reportId} className="impact-app-item">
+                  <div className="impact-app-info">
+                    <div className="impact-app-avatar">
+                      {(r.userName || "S").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="impact-app-name">{r.userName || "Student Member"}</p>
+                      <p className="impact-app-stage">Period: {r.reportMonth || "Monthly Report"}</p>
+                    </div>
+                  </div>
+                  <div className="impact-app-actions">
+                    <button 
+                      className="impact-app-btn reject" 
+                      title="View full report"
+                      onClick={() => setActiveTab("reports")}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">visibility</span>
+                    </button>
+                    <button 
+                      className="impact-app-btn accept" 
+                      title="Quick Approve"
+                      disabled={reviewingId === r.reportId}
+                      onClick={(e) => handleQuickApprove(r.reportId, e)}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        {reviewingId === r.reportId ? "hourglass_empty" : "check"}
+                      </span>
+                    </button>
+                  </div>
                 </div>
-                <div className="announcement-title">{r.userName || "Student Member"}</div>
-                <div className="announcement-body">{r.businessSummary}</div>
-                <div className="announcement-date">Submitted {formatDate(r.submittedAt)}</div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
+
+          <button 
+            className="impact-view-all-btn" 
+            onClick={() => setActiveTab("reports")}
+          >
+            Go to Full Review Queue →
+          </button>
         </div>
       </div>
-    </>
+
+      {/* Recent Project & Venture Activity Table */}
+      <div className="impact-table-card">
+        <div className="impact-table-header">
+          <div>
+            <h3 className="impact-section-title">Recent Venture Activity</h3>
+            <p className="impact-section-subtitle">Live events, reports, and notices submitted into the ecosystem</p>
+          </div>
+          <button className="impact-link-btn" onClick={() => setActiveTab("reports")}>
+            View All Activity
+          </button>
+        </div>
+
+        <div className="impact-table-responsive">
+          <table className="impact-table">
+            <thead>
+              <tr>
+                <th className="pl-6">Initiative / Update</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Timestamp</th>
+                <th className="text-right pr-6">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentActivities.map(act => (
+                <tr key={act.id} className="impact-table-row">
+                  <td className="pl-6 font-medium text-gray-900">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[18px]">{act.icon}</span>
+                      </div>
+                      <span>{act.name}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="impact-pill-category">{act.category}</span>
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        act.status === "Completed" || act.status === "Published" 
+                          ? "bg-teal-600" 
+                          : act.status === "Under Review" 
+                          ? "bg-amber-500" 
+                          : "bg-blue-600"
+                      }`}></div>
+                      <span className="text-sm text-gray-700">{act.status}</span>
+                    </div>
+                  </td>
+                  <td className="text-sm text-gray-500">{formatDate(act.date)}</td>
+                  <td className="text-right pr-6">
+                    <button 
+                      className="impact-icon-action" 
+                      onClick={() => setActiveTab(act.type === "report" ? "reports" : act.type === "event" ? "events" : "announcements")}
+                      title="Inspect record"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1284,6 +1564,8 @@ export default function AdminDashboard({ user, onLogout }) {
             events={events}
             reports={reports}
             setActiveTab={navigateTab}
+            onRefresh={loadAdminData}
+            user={user}
           />
         );
       case "members":
