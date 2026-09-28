@@ -54,8 +54,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isAuthenticated = !!user;
   const role = user?.role;
 
-  const isAdmin = role === 'Administrator' || role === 'Super Administrator';
-  const isSuperAdmin = role === 'Super Administrator';
+  const isAdmin = role === 'Administrator' || role === 'Super Admin' || role === 'Admin';
+  const isSuperAdmin = role === 'Super Admin';
   const isFacultyAdvisor = role === 'Faculty Advisor';
   const isMember = role === 'Member';
   const isReadOnly = isFacultyAdvisor;

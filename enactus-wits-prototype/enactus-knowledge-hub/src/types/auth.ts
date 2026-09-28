@@ -3,7 +3,7 @@
 export type UserRole = 
   | 'Member'
   | 'Administrator' 
-  | 'Super Administrator'
+  | 'Super Admin'
   | 'Faculty Advisor';
 
 export type BusinessStageID = 'Idea' | 'Prototype' | 'Running Business';

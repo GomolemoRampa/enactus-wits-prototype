@@ -52,7 +52,7 @@ export const MOCK_ENACTUS_USERS: EnactusUser[] = [
     enactusId: 'ENACTUS-WITS-EXEC-001',
     name: 'Dr. Kagiso Molefe',
     email: 'president@enactuswits.org.za',
-    role: 'Super Administrator',
+    role: 'Super Admin',
     department: 'Executive Committee',
     teamRole: 'Enactus Wits President',
     isRegisteredOnMainSystem: true,
