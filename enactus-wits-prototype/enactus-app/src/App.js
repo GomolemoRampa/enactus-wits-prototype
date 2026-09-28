@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProfileSetup from "./pages/ProfileSetup";
@@ -8,6 +8,9 @@ import { api } from "./services/api";
 import { IconWarning, IconClock } from "./components/Icons";
 import { isSupabaseConfigured } from "./lib/supabaseClient";
 import "./App.css";
+
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+const INACTIVITY_WARNING_MS = 14 * 60 * 1000; // Warning at 14 minutes (1 min before timeout)
 
 export default function App() {
   const [page, setPage] = useState("login");
@@ -138,8 +141,56 @@ export default function App() {
     }
     setCurrentUser(null);
     setPendingUser(null);
+    setInactivityWarning(false);
     navigate("login");
   };
+
+  // ── 15-Minute Inactivity Timeout ──────────────────────────────────────────
+  const [inactivityWarning, setInactivityWarning] = useState(false);
+  const inactivityTimer = useRef(null);
+  const warningTimer = useRef(null);
+
+  const resetInactivityTimers = useCallback(() => {
+    setInactivityWarning(false);
+    if (warningTimer.current) clearTimeout(warningTimer.current);
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+
+    // Set warning at 14 minutes
+    warningTimer.current = setTimeout(() => {
+      setInactivityWarning(true);
+    }, INACTIVITY_WARNING_MS);
+
+    // Set auto-logout at 15 minutes
+    inactivityTimer.current = setTimeout(() => {
+      handleLogout();
+    }, INACTIVITY_TIMEOUT_MS);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const isLoggedIn = currentUser && page !== "login" && page !== "register";
+    if (!isLoggedIn) {
+      // Clear timers when not logged in
+      if (warningTimer.current) clearTimeout(warningTimer.current);
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+      setInactivityWarning(false);
+      return;
+    }
+
+    const activityEvents = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
+    const handleActivity = () => resetInactivityTimers();
+
+    // Start the timers
+    resetInactivityTimers();
+
+    // Listen for user activity
+    activityEvents.forEach(evt => window.addEventListener(evt, handleActivity, { passive: true }));
+
+    return () => {
+      activityEvents.forEach(evt => window.removeEventListener(evt, handleActivity));
+      if (warningTimer.current) clearTimeout(warningTimer.current);
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    };
+  }, [currentUser, page, resetInactivityTimers]);
 
   // ── Session restore loading screen ───────────────────────────────────────
   if (sessionLoading) {
@@ -156,6 +207,22 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* Inactivity warning banner */}
+      {inactivityWarning && currentUser && (
+        <div className="inactivity-warning-banner">
+          <div className="inactivity-warning-content">
+            <IconWarning width={16} height={16} />
+            <span>You will be signed out in <strong>1 minute</strong> due to inactivity.</span>
+            <button
+              className="btn-sm"
+              onClick={resetInactivityTimers}
+              style={{ marginLeft: 12, padding: "4px 12px", fontSize: 12, fontWeight: 600 }}
+            >
+              Stay signed in
+            </button>
+          </div>
+        </div>
+      )}
       {page === "login" && (
         <Login onLogin={handleLoginSuccess} onGoRegister={() => navigate("register")} />
       )}

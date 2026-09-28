@@ -59,6 +59,22 @@ class ChatService {
     timestamp: string
   ): ChatMessage {
     const queryLower = query.toLowerCase().trim();
+
+    // Tokenize query into meaningful keywords (remove stop words)
+    const stopWords = new Set([
+      'what', 'where', 'how', 'when', 'who', 'which', 'is', 'are', 'was', 'were',
+      'do', 'does', 'did', 'can', 'could', 'would', 'should', 'will', 'shall',
+      'have', 'has', 'had', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on',
+      'at', 'to', 'for', 'of', 'with', 'by', 'from', 'about', 'into', 'through',
+      'we', 'i', 'you', 'they', 'he', 'she', 'it', 'my', 'our', 'your', 'their',
+      'this', 'that', 'these', 'those', 'there', 'here', 'any', 'some', 'all',
+      'find', 'get', 'give', 'me', 'us', 'tell', 'show', 'please', 'help',
+    ]);
+    const queryWords = queryLower
+      .replace(/[?!.,;:'"()]/g, '')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w));
+
     const courses = courseService.getCourses();
     const resources = resourceService.getResources();
 
@@ -69,21 +85,22 @@ class ChatService {
     ];
     const isOutOfScope = outOfScopeKeywords.some(kw => queryLower.includes(kw));
 
-    const matchedCourses = courses.filter(
-      c =>
-        c.title.toLowerCase().includes(queryLower) ||
-        c.description.toLowerCase().includes(queryLower) ||
-        c.category.toLowerCase().includes(queryLower) ||
-        c.modules.some(m => m.title.toLowerCase().includes(queryLower) || m.content.toLowerCase().includes(queryLower))
-    );
+    // Word-based matching: a course/resource matches if ANY keyword appears in its searchable text
+    const matchedCourses = courses.filter(c => {
+      const searchText = [
+        c.title, c.description, c.category,
+        ...c.modules.map(m => m.title + ' ' + m.content)
+      ].join(' ').toLowerCase();
+      return queryWords.some(word => searchText.includes(word));
+    });
 
-    const matchedResources = resources.filter(
-      r =>
-        r.title.toLowerCase().includes(queryLower) ||
-        r.summary.toLowerCase().includes(queryLower) ||
-        r.category.toLowerCase().includes(queryLower) ||
-        r.tags.some(t => queryLower.includes(t.toLowerCase()))
-    );
+    const matchedResources = resources.filter(r => {
+      const searchText = [
+        r.title, r.summary, r.category,
+        ...r.tags
+      ].join(' ').toLowerCase();
+      return queryWords.some(word => searchText.includes(word));
+    });
 
     const sources = [
       ...matchedCourses.map(c => ({ id: c.id, title: c.title, type: 'course' as const, stage: c.businessStage, category: c.category })),
@@ -126,10 +143,13 @@ class ChatService {
       reply += "- Course: Enactus National Competition Pitch Deck Architecture\n";
       reply += "- Resource: Enactus National Competition Slide Deck Master Template (16:9)";
     } else {
-      reply += `Found ${sources.length} matching item(s) in the Knowledge Hub:\n`;
-      sources.slice(0, 3).forEach(s => {
-        reply += `- [${s.type.toUpperCase()}] ${s.title} (${s.stage || 'General'})\n`;
+      reply += `Found ${sources.length} relevant item(s) in the Knowledge Hub:\n\n`;
+      sources.slice(0, 5).forEach(s => {
+        reply += `• [${s.type.toUpperCase()}] ${s.title}\n  Stage: ${s.stage || 'General'} | Category: ${s.category || 'General'}\n`;
       });
+      if (sources.length > 5) {
+        reply += `\n...and ${sources.length - 5} more result(s).`;
+      }
       reply += "\nYou can explore detailed modules and downloads in the Courses and Resources tabs.";
     }
 
@@ -139,7 +159,7 @@ class ChatService {
       content: reply,
       timestamp,
       isFlagged: false,
-      sources: sources.slice(0, 3)
+      sources: sources.slice(0, 5)
     };
 
     this.saveLocalInteraction(user, query, assistantMsg);
