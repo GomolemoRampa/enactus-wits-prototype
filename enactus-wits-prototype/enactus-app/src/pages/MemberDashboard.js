@@ -193,7 +193,7 @@ function Sidebar({ user, activeTab, setActiveTab, onLogout, announcementsCount }
 // ────────────────────────────────────────────────────────────
 // TAB 1: DASHBOARD HOME
 // ────────────────────────────────────────────────────────────
-function DashboardHome({ user, setActiveTab, announcements, reports, events }) {
+function DashboardHome({ user, setActiveTab, announcements, reports, events, unreadCount = 0 }) {
   const stageName = getStageName(user.businessStageId);
   const registeredEvents = events.filter(e => e.isRegistered);
   const pendingReports = reports.filter(r => r.status === "Submitted" || r.status === "Pending");
@@ -205,31 +205,16 @@ function DashboardHome({ user, setActiveTab, announcements, reports, events }) {
           <h1>Welcome back, {user.fullName.split(" ")[0]}</h1>
           <p>Enactus Wits Support System & Venture Acceleration Portal</p>
         </div>
-        <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-          <button 
-            className="btn-icon" 
-            onClick={() => setActiveTab("announcements")}
-            style={{ position: "relative", border: "none", background: "none", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center" }}
-            title="View Announcements"
-          >
-            <IconBell />
-            {announcements.length > 0 && (
-              <span className="nav-badge" style={{ position: "absolute", top: -8, right: -12, backgroundColor: "var(--status-danger)", color: "white", padding: "2px 6px", borderRadius: "10px", fontSize: "10px", fontWeight: "bold" }}>
-                {announcements.length}
-              </span>
-            )}
-          </button>
-          <button className="btn-primary" onClick={() => setActiveTab("reports")}>
-            + Submit Monthly Report
-          </button>
-        </div>
+        <button className="btn-primary" onClick={() => setActiveTab("reports")}>
+          + Submit Monthly Report
+        </button>
       </div>
 
       <div className="stats-row">
         <div className="stat-card" onClick={() => setActiveTab("announcements")} style={{ cursor: "pointer" }}>
           <div className="stat-icon"></div>
-          <div className="stat-value">{announcements.length}</div>
-          <div className="stat-label">Announcements for you</div>
+          <div className="stat-value">{unreadCount > 0 ? unreadCount : announcements.length}</div>
+          <div className="stat-label">{unreadCount > 0 ? "New announcements" : "Announcements for you"}</div>
         </div>
         <div className="stat-card" onClick={() => setActiveTab("events")} style={{ cursor: "pointer" }}>
           <div className="stat-icon"></div>
@@ -1070,6 +1055,23 @@ function ProfileTab({ user }) {
 // ────────────────────────────────────────────────────────────
 // MAIN CONTAINER
 // ────────────────────────────────────────────────────────────
+// Helper: get the set of announcement IDs the user has already seen
+function getReadAnnouncementIds(userId) {
+  try {
+    const key = `enactus_read_announcements_${userId}`;
+    const stored = localStorage.getItem(key);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+// Helper: persist a set of read announcement IDs
+function setReadAnnouncementIds(userId, ids) {
+  const key = `enactus_read_announcements_${userId}`;
+  localStorage.setItem(key, JSON.stringify([...ids]));
+}
+
 export default function MemberDashboard({ user, onLogout }) {
   const [tabHistory, setTabHistory] = useState(["dashboard"]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -1080,6 +1082,26 @@ export default function MemberDashboard({ user, onLogout }) {
   const [events, setEvents] = useState([]);
   const [milestones, setMilestones] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [readIds, setReadIds] = useState(() => getReadAnnouncementIds(user.userId));
+
+  // Compute unread count
+  const unreadCount = announcements.filter(a => !readIds.has(a.announcementId)).length;
+
+  // Mark all announcements as read
+  const markAllAnnouncementsRead = useCallback(() => {
+    if (announcements.length > 0) {
+      const allIds = new Set([...readIds, ...announcements.map(a => a.announcementId)]);
+      setReadIds(allIds);
+      setReadAnnouncementIds(user.userId, allIds);
+    }
+  }, [announcements, readIds, user.userId]);
+
+  // Auto-mark as read when user visits the announcements tab
+  useEffect(() => {
+    if (activeTab === "announcements" && unreadCount > 0) {
+      markAllAnnouncementsRead();
+    }
+  }, [activeTab, unreadCount, markAllAnnouncementsRead]);
 
   // Undo Toast state
   const [undoToast, setUndoToast] = useState(null);
@@ -1155,6 +1177,7 @@ export default function MemberDashboard({ user, onLogout }) {
             reports={reports}
             events={events}
             milestones={milestones}
+            unreadCount={unreadCount}
           />
         );
       case "announcements":
@@ -1186,9 +1209,42 @@ export default function MemberDashboard({ user, onLogout }) {
         activeTab={activeTab}
         setActiveTab={navigateTab}
         onLogout={onLogout}
-        announcementsCount={announcements ? announcements.length : 0}
+        announcementsCount={unreadCount}
       />
       <div className="main-content">
+        {/* Persistent notification bell bar — visible on ALL tabs */}
+        <div className="topbar-actions" style={{ display: "flex", justifyContent: "flex-end", padding: "8px 16px 0", gap: 12, alignItems: "center" }}>
+          <button
+            onClick={() => navigateTab("announcements")}
+            style={{ position: "relative", border: "none", background: "none", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center", padding: 6 }}
+            title={unreadCount > 0 ? `${unreadCount} new announcement${unreadCount > 1 ? "s" : ""}` : "No new announcements"}
+          >
+            <IconBell />
+            {unreadCount > 0 && (
+              <span
+                className="nav-badge"
+                style={{
+                  position: "absolute",
+                  top: -2,
+                  right: -6,
+                  minWidth: 18,
+                  height: 18,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "50%",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  animation: "pulse-badge 2s infinite",
+                }}
+              >
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+
         <NavigationHeader
           activeTab={activeTab}
           canGoBack={canGoBack}

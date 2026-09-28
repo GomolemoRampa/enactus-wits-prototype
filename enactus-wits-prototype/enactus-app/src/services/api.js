@@ -631,31 +631,39 @@ export const api = {
     const stageAudience = stageIdToAudienceType(userStageId);
 
     if (isSupabaseConfigured() && supabase) {
-      // Fetch announcements where audience_type = AllMembers or matching stage, or in audience_map
-      const { data, error } = await supabase
-        .from("announcement")
-        .select(`
-          announcement_id, title, body, created_at, audience_type, recipient_count
-        `)
-        .order("created_at", { ascending: false });
+      try {
+        // Fetch announcements where audience_type = AllMembers or matching stage, or in audience_map
+        const { data, error } = await supabase
+          .from("announcement")
+          .select(`
+            announcement_id, title, body, created_at, audience_type, recipient_count
+          `)
+          .order("created_at", { ascending: false });
 
-      if (error) throw new Error(error.message);
+        if (error) throw error;
 
-      return (data || []).filter(a => {
-        if (a.audience_type === "AllMembers") return true;
-        if (stageAudience && a.audience_type === stageAudience) return true;
-        return false;
-      }).map(a => ({
-        announcementId: a.announcement_id,
-        title: a.title,
-        body: a.body,
-        createdAt: a.created_at,
-        audienceType: a.audience_type,
-        pinned: a.audience_type === "AllMembers",
-      }));
+        if (data && data.length > 0) {
+          return data.filter(a => {
+            if (a.audience_type === "AllMembers") return true;
+            if (stageAudience && a.audience_type === stageAudience) return true;
+            return false;
+          }).map(a => ({
+            announcementId: a.announcement_id,
+            title: a.title,
+            body: a.body,
+            createdAt: a.created_at,
+            audienceType: a.audience_type,
+            pinned: a.audience_type === "AllMembers",
+          }));
+        }
+        // If Supabase returned empty, fall through to local data
+      } catch (err) {
+        console.warn("Supabase announcements query failed, using local data:", err.message);
+        // Fall through to local fallback below
+      }
     }
 
-    // Local fallback
+    // Local fallback (used when Supabase is not configured, query fails, or table is empty)
     const announcements = getStored(LOCAL_STORAGE_KEYS.ANNOUNCEMENTS, INITIAL_ANNOUNCEMENTS);
     const audienceMap = getStored(LOCAL_STORAGE_KEYS.AUDIENCE_MAP, INITIAL_AUDIENCE_MAP);
 

@@ -251,6 +251,11 @@ h1, h2, h3, h4 {
   border-radius: var(--radius-full);
 }
 
+@keyframes pulse-badge {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
 .sidebar-logout {
   margin-top: auto;
   padding-top: 16px;
