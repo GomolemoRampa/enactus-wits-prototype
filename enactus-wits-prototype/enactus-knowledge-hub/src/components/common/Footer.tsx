@@ -12,7 +12,7 @@ export const Footer: React.FC = () => {
           <span>Standalone Knowledge Domain</span>
           <span>|</span>
           <a
-            href="http://localhost:3001"
+            href={import.meta.env.VITE_MAIN_APP_URL || "http://localhost:3001"}
             target="_blank"
             rel="noopener noreferrer"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}

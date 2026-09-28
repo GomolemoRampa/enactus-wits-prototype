@@ -1,18 +1,13 @@
 import { EnactusUser, AuthSession, UserRole } from '../../types/auth';
-import { MOCK_ENACTUS_USERS } from '../mockData';
+import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient';
 
 export interface IEnactusSSOAdapter {
-  loginWithSSO(personaId?: string): Promise<AuthSession>;
+  loginWithCredentials(email?: string, password?: string): Promise<AuthSession>;
   logout(): Promise<void>;
   validateSession(token: string): Promise<EnactusUser | null>;
   getCurrentSession(): AuthSession | null;
-  getAvailablePersonas(): EnactusUser[];
 }
 
-/**
- * Isolated SSO Authentication Adapter for Enactus Wits Knowledge Hub.
- * Handles Single Sign-On token verification and user claims against the primary Enactus Wits Support System.
- */
 class EnactusSSOAdapter implements IEnactusSSOAdapter {
   private storageKey = 'enactus_kh_sso_session';
   private currentSession: AuthSession | null = null;
@@ -38,39 +33,49 @@ class EnactusSSOAdapter implements IEnactusSSOAdapter {
     }
   }
 
-  /**
-   * Retrieves all available mock personas from the simulated identity provider.
-   */
-  public getAvailablePersonas(): EnactusUser[] {
-    return MOCK_ENACTUS_USERS;
-  }
+  public async loginWithCredentials(email?: string, password?: string): Promise<AuthSession> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error("Supabase is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment variables.");
+    }
+    
+    if (!email || !password) {
+      throw new Error("Email and password are required.");
+    }
 
-  /**
-   * Performs Single Sign-On against the Enactus Wits Identity Provider.
-   * 
-   * =========================================================================
-   * TODO: CONNECT REAL ENACTUS WITS OAUTH2 / OIDC IDENTITY PROVIDER ENDPOINT
-   * =========================================================================
-   * When deploying to production with the main Enactus Wits Support System:
-   * 1. Redirect to: `${MAIN_SYSTEM_AUTH_URL}/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${CALLBACK_URL}&response_type=code`
-   * 2. Exchange authorization code for access token via `${MAIN_SYSTEM_AUTH_URL}/oauth/token`
-   * 3. Fetch user profile and roles from `${MAIN_SYSTEM_AUTH_URL}/api/v1/user/me`
-   * 4. Verify that `isRegisteredOnMainSystem === true` and extract BusinessStageID and Role.
-   */
-  public async loginWithSSO(personaId?: string): Promise<AuthSession> {
-    // Simulate network latency for identity provider handshake
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    // Default to the first member persona (Lerato Khumalo - Idea Stage) if not specified
-    const userToLogin = personaId 
-      ? MOCK_ENACTUS_USERS.find(u => u.id === personaId) || MOCK_ENACTUS_USERS[0]
-      : MOCK_ENACTUS_USERS[0];
+    if (authError || !authData.session) {
+      throw new Error(authError?.message || "Login failed");
+    }
 
-    // Mock token generated from identity provider
+    // Fetch user details from the 'user' table (same as main app)
+    const { data: userData, error: userError } = await supabase
+      .from("user")
+      .select("*")
+      .eq("id", authData.session.user.id)
+      .single();
+
+    if (userError || !userData) {
+      console.warn("Could not find user profile in the database.", userError);
+    }
+
+    const user: EnactusUser = {
+      id: userData?.id || authData.session.user.id,
+      enactusId: userData?.student_number || authData.session.user.id,
+      name: userData ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() : 'Enactus User',
+      email: userData?.email || authData.session.user.email || '',
+      role: (userData?.role as UserRole) || 'Member',
+      isRegisteredOnMainSystem: true,
+      businessStageId: userData?.business_stage || undefined,
+    };
+
     const session: AuthSession = {
-      token: `sso_jwt_${userToLogin.id}_${Date.now()}`,
-      user: { ...userToLogin },
-      expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7, // 7 days
+      token: authData.session.access_token,
+      user,
+      expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7,
     };
 
     this.currentSession = session;
@@ -79,6 +84,9 @@ class EnactusSSOAdapter implements IEnactusSSOAdapter {
   }
 
   public async logout(): Promise<void> {
+    if (isSupabaseConfigured() && supabase) {
+      await supabase.auth.signOut();
+    }
     this.currentSession = null;
     localStorage.removeItem(this.storageKey);
   }

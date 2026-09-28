@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../../services/auth/authContext';
 import { StageBadge } from './StageBadge';
-import { BookOpen, FolderArchive, ShieldAlert, MessageSquare, LogOut, UserCheck, RefreshCw, ExternalLink } from 'lucide-react';
-import { PersonaSwitcherModal } from '../auth/PersonaSwitcherModal';
-
+import { BookOpen, FolderArchive, ShieldAlert, MessageSquare, LogOut, UserCheck, ExternalLink } from 'lucide-react';
 interface HeaderProps {
   activeTab: 'courses' | 'resources' | 'admin';
   setActiveTab: (tab: 'courses' | 'resources' | 'admin') => void;
@@ -18,7 +16,6 @@ export const Header: React.FC<HeaderProps> = ({
   unreadFlaggedCount = 0
 }) => {
   const { user, logout, isAdmin, isSuperAdmin, isFacultyAdvisor, isMember } = useAuth();
-  const [showPersonaModal, setShowPersonaModal] = useState(false);
 
   return (
     <header className="top-nav">
@@ -37,18 +34,6 @@ export const Header: React.FC<HeaderProps> = ({
               Read-Only Access
             </span>
           )}
-        </div>
-        <div className="sso-banner-actions">
-          <button
-            type="button"
-            className="btn-sm btn-ghost"
-            onClick={() => setShowPersonaModal(true)}
-            title="Switch Enactus Account Persona"
-            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-          >
-            <RefreshCw size={12} />
-            Switch Persona
-          </button>
         </div>
       </div>
 
@@ -107,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           <a
-            href="http://localhost:3001"
+            href={import.meta.env.VITE_MAIN_APP_URL || "http://localhost:3001"}
             className="nav-link-btn"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
             title="Switch to Incubator Management Portal"
@@ -148,9 +133,6 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {showPersonaModal && (
-        <PersonaSwitcherModal onClose={() => setShowPersonaModal(false)} />
-      )}
     </header>
   );
 };

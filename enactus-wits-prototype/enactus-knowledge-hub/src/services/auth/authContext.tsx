@@ -7,10 +7,8 @@ interface AuthContextType {
   session: AuthSession | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  personas: EnactusUser[];
-  login: (personaId?: string) => Promise<void>;
+  login: (email?: string, password?: string) => Promise<void>;
   logout: () => Promise<void>;
-  switchPersona: (personaId: string) => Promise<void>;
   isAdmin: boolean;
   isSuperAdmin: boolean;
   isFacultyAdvisor: boolean;
@@ -32,10 +30,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(false);
   }, []);
 
-  const login = async (personaId?: string) => {
+  const login = async (email?: string, password?: string) => {
     setIsLoading(true);
     try {
-      const newSession = await enactusSSO.loginWithSSO(personaId);
+      const newSession = await enactusSSO.loginWithCredentials(email, password);
       setSession(newSession);
     } finally {
       setIsLoading(false);
@@ -50,10 +48,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const switchPersona = async (personaId: string) => {
-    await login(personaId);
   };
 
   const user = session?.user || null;
@@ -73,10 +67,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         session,
         isAuthenticated,
         isLoading,
-        personas: enactusSSO.getAvailablePersonas(),
         login,
         logout,
-        switchPersona,
         isAdmin,
         isSuperAdmin,
         isFacultyAdvisor,

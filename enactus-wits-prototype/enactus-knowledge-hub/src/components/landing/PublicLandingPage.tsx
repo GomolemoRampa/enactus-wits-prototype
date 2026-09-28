@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../services/auth/authContext';
-import { StageBadge } from '../common/StageBadge';
-import { LogIn, ExternalLink, ShieldCheck, BookOpen, FolderArchive, HelpCircle, CheckSquare, AlertCircle } from 'lucide-react';
+import { LogIn, ExternalLink, ShieldCheck, BookOpen, FolderArchive, AlertCircle } from 'lucide-react';
 
 export const PublicLandingPage: React.FC = () => {
-  const { login, personas } = useAuth();
-  const [selectedPersonaId, setSelectedPersonaId] = useState<string>(personas[0]?.id || 'user-mem-01');
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  const handleLogin = async () => {
-    await login(selectedPersonaId);
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setError('');
+    try {
+      await login(email, password);
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please check your credentials.');
+    }
   };
 
   return (
@@ -24,7 +31,7 @@ export const PublicLandingPage: React.FC = () => {
             <strong style={{ fontSize: 16, color: 'var(--text-primary)' }}>Knowledge Hub</strong>
           </div>
           <a
-            href="http://localhost:3001"
+            href={import.meta.env.VITE_MAIN_APP_URL || "http://localhost:3001"}
             target="_blank"
             rel="noopener noreferrer"
             style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--text-secondary)' }}
@@ -107,37 +114,53 @@ export const PublicLandingPage: React.FC = () => {
                 Access to the Knowledge Hub is restricted to registered Enactus Wits members and advisors. Sign in using your official Enactus account credentials.
               </p>
 
-              {/* Persona Selector for Evaluation */}
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
-                  Select Enactus Account for SSO:
-                </label>
-                <select
-                  value={selectedPersonaId}
-                  onChange={e => setSelectedPersonaId(e.target.value)}
-                  style={{ marginBottom: 8, backgroundColor: 'var(--bg-primary)' }}
-                >
-                  {personas.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} — {p.role} {p.businessStageId ? `(${p.businessStageId} Stage)` : ''}
-                    </option>
-                  ))}
-                </select>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>
-                  Simulates authentication against the main Enactus Wits Identity Provider.
-                </span>
-              </div>
+              {error && (
+                <div style={{ color: 'var(--status-danger)', fontSize: 12, marginBottom: 12, padding: '8px', backgroundColor: 'rgba(220,53,69,0.1)', borderRadius: '4px' }}>
+                  {error}
+                </div>
+              )}
 
-              {/* Primary SSO Action Button */}
-              <button
-                type="button"
-                className="btn-primary btn-lg"
-                onClick={handleLogin}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}
-              >
-                <LogIn size={16} />
-                Login with Enactus Account
-              </button>
+              <form onSubmit={handleLogin}>
+                {/* Email Input */}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--text-primary)' }}
+                    placeholder="Enter your registered email"
+                    required
+                  />
+                </div>
+
+                {/* Password Input */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '4px', color: 'var(--text-primary)' }}
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+
+                {/* Primary SSO Action Button */}
+                <button
+                  type="submit"
+                  className="btn-primary btn-lg"
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}
+                >
+                  <LogIn size={16} />
+                  Login
+                </button>
+              </form>
             </div>
 
             {/* Non-Member Redirection Notice (Mandatory Requirement) */}
@@ -152,7 +175,7 @@ export const PublicLandingPage: React.FC = () => {
                 There is no independent registration on this Knowledge Hub. You must first register as an active member on the main Enactus Wits Support System.
               </p>
               <a
-                href="http://localhost:3001/register"
+                href={`${import.meta.env.VITE_MAIN_APP_URL || "http://localhost:3001"}/register`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
