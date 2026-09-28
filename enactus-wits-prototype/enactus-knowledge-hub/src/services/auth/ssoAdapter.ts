@@ -51,10 +51,10 @@ class EnactusSSOAdapter implements IEnactusSSOAdapter {
       throw new Error(authError?.message || "Login failed");
     }
 
-    // Fetch user details from the 'app_user' table (same as main app)
+    // Fetch user details from the 'app_user' table
     const { data: userData, error: userError } = await supabase
       .from("app_user")
-      .select("*, role:role_id(role_name), business_stage:business_stage_id(stage_name)")
+      .select("*")
       .eq("auth_user_id", authData.session.user.id)
       .single();
 
@@ -62,14 +62,28 @@ class EnactusSSOAdapter implements IEnactusSSOAdapter {
       console.warn("Could not find user profile in the database.", userError);
     }
 
+    // Explicitly resolve role name to avoid any PostgREST join ambiguity
+    let resolvedRole = 'Member';
+    if (userData?.role_id) {
+      const { data: roleData } = await supabase.from('role').select('role_name').eq('role_id', userData.role_id).single();
+      if (roleData) resolvedRole = roleData.role_name;
+    }
+
+    // Explicitly resolve business stage name
+    let resolvedStage = undefined;
+    if (userData?.business_stage_id) {
+      const { data: stageData } = await supabase.from('business_stage').select('stage_name').eq('business_stage_id', userData.business_stage_id).single();
+      if (stageData) resolvedStage = stageData.stage_name;
+    }
+
     const user: EnactusUser = {
       id: userData?.user_id || authData.session.user.id,
       enactusId: userData?.auth_user_id || authData.session.user.id,
       name: userData?.full_name || 'Enactus User',
       email: userData?.wits_email || authData.session.user.email || '',
-      role: (userData?.role?.role_name as UserRole) || 'Member',
+      role: (resolvedRole as UserRole) || 'Member',
       isRegisteredOnMainSystem: !!userData,
-      businessStageId: userData?.business_stage?.stage_name || undefined,
+      businessStageId: resolvedStage,
     };
 
     const session: AuthSession = {
