@@ -1,4 +1,4 @@
-/**
+/**213`sdfcxjkzjvk;ladswq2=-9
  * ============================================================
  * ENACTUS WITS SUPPORT SYSTEM — THIN BACKEND (RENDER SERVICE)
  * AltruTech | Iteration 2
@@ -12,12 +12,13 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { Resend } = require('resend');
 const { createClient } = require('@supabase/supabase-js');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
+120
 // Middleware
 app.use(cors({ origin: '*' }));
 app.use(express.json());
@@ -34,6 +35,10 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = (supabaseUrl && supabaseServiceKey)
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
+
+// Initialize Gemini
+const geminiApiKey = process.env.GEMINI_API_KEY;
+const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -214,9 +219,9 @@ app.post('/api/webhooks/event', async (req, res) => {
 
     const contentHtml = `
       <div class="card">
-        <p><strong>📅 Date & Time:</strong> ${eventDateFormatted}</p>
-        <p><strong>🏷️ Category:</strong> ${record.category || 'Workshop'}</p>
-        <p><strong>🔒 Visibility:</strong> ${record.visibility}</p>
+        <p><strong>Date & Time:</strong> ${eventDateFormatted}</p>
+        <p><strong>Category:</strong> ${record.category || 'Workshop'}</p>
+        <p><strong>Visibility:</strong> ${record.visibility}</p>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
         <p style="margin: 0; white-space: pre-line;">${record.description || ''}</p>
       </div>
@@ -273,6 +278,59 @@ app.post('/api/send-email', async (req, res) => {
     return res.status(200).json({ success: true, response });
   } catch (err) {
     console.error('[Direct Email] Error sending email:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * 4. Knowledge Hub Chatbot Endpoint (Gemini Integration)
+ */
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { query, user } = req.body;
+    
+    if (!query) {
+      return res.status(400).json({ error: 'Missing query field.' });
+    }
+
+    if (!genAI) {
+      return res.status(503).json({ error: 'Gemini API not configured.' });
+    }
+
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const prompt = `
+    You are the Enactus Wits Knowledge Assistant. You help members with Enactus-related questions, business stages, and project guidance.
+    The user asking is: ${user?.name || 'A user'} (Role: ${user?.role || 'Member'}, Stage: ${user?.businessStageId || 'N/A'}).
+    
+    Rules:
+    1. Be concise, friendly, and professional.
+    2. If the user asks something completely unrelated to Enactus, business, entrepreneurship, or university life (like football, movies, weather), say exactly "OUT_OF_SCOPE". Do not answer it.
+    3. Suggest they look at the Knowledge Hub resources for more details when relevant.
+    
+    Question: ${query}
+    `;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    
+    if (responseText.trim().includes("OUT_OF_SCOPE")) {
+      return res.json({
+        reply: "This question is outside our currently indexed Knowledge Hub courses, resources, and business stage guidelines. I have logged and flagged this query for an Enactus Administrator to review.",
+        isFlagged: true,
+        flagReason: "Query outside Knowledge Hub course and resource domain.",
+        sources: []
+      });
+    }
+
+    return res.json({
+      reply: responseText,
+      isFlagged: false,
+      sources: []
+    });
+
+  } catch (err) {
+    console.error('[Chatbot API] Error:', err);
     return res.status(500).json({ error: err.message });
   }
 });

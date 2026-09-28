@@ -7,6 +7,16 @@ import {
   BUSINESS_STAGES,
   AUDIENCE_TYPES,
 } from "../services/api";
+import {
+  IconGrid,
+  IconUsers,
+  IconMegaphone,
+  IconEdit,
+  IconCalendar,
+  IconDocument,
+  IconChart,
+  IconBook,
+} from "../components/Icons";
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -81,7 +91,7 @@ function NavigationHeader({ activeTab, canGoBack, previousTabLabel, onGoBack, on
     <div style={{ marginBottom: 18 }}>
       <div className="breadcrumbs">
         <span className="breadcrumb-link" onClick={onNavigateHome}>
-          🏠 Overview
+           Overview
         </span>
         <span className="breadcrumb-separator">/</span>
         <span className="breadcrumb-current">{ADMIN_TAB_LABELS[activeTab] || activeTab}</span>
@@ -108,20 +118,20 @@ function Sidebar({ user, activeTab, setActiveTab, onLogout, pendingReportsCount 
     .toUpperCase();
 
   const navItems = [
-    { id: "overview", icon: "⊞", label: "Overview" },
-    { id: "members", icon: "👥", label: "Members Directory" },
-    { id: "announcements", icon: "📢", label: "Announcements" },
-    { id: "compose", icon: "✏️", label: "Send Announcement" },
-    { id: "events", icon: "📅", label: "Events Management" },
+    { id: "overview", icon: IconGrid, label: "Overview" },
+    { id: "members", icon: IconUsers, label: "Members Directory" },
+    { id: "announcements", icon: IconMegaphone, label: "Announcements" },
+    { id: "compose", icon: IconEdit, label: "Send Announcement" },
+    { id: "events", icon: IconCalendar, label: "Events Management" },
     {
       id: "reports",
-      icon: "📄",
+      icon: IconDocument,
       label: "Review Reports",
       badge: pendingReportsCount > 0 ? pendingReportsCount : null,
     },
     {
       id: "system-reports",
-      icon: "📊",
+      icon: IconChart,
       label: "System Reports",
     },
   ];
@@ -150,11 +160,24 @@ function Sidebar({ user, activeTab, setActiveTab, onLogout, pendingReportsCount 
             className={`nav-item ${activeTab === item.id ? "active" : ""}`}
             onClick={() => setActiveTab(item.id)}
           >
-            <span className="nav-icon">{item.icon}</span>
+            <span className="nav-icon"><item.icon /></span>
             <span style={{ flex: 1 }}>{item.label}</span>
             {item.badge && <span className="nav-badge">{item.badge}</span>}
           </div>
         ))}
+
+        <div className="nav-section-label">External Portals</div>
+        <a
+          href="http://localhost:3000"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="nav-item"
+          style={{ textDecoration: "none", color: "inherit" }}
+          title="Open Standalone Knowledge Hub"
+        >
+          <span className="nav-icon"><IconBook /></span>
+          <span style={{ flex: 1 }}>Knowledge Hub ↗</span>
+        </a>
       </nav>
 
       <div className="sidebar-logout">
@@ -738,14 +761,14 @@ function AnnouncementsTab({ announcements, setActiveTab }) {
 
       {announcements.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📢</div>
+          <div className="empty-icon"></div>
           <p>No announcements created yet.</p>
         </div>
       ) : (
         announcements.map(ann => (
           <div key={ann.announcementId} className={`announcement-card ${ann.pinned ? "pinned" : ""}`}>
             <div className="announcement-meta">
-              {ann.pinned && <span className="badge badge-pin">📌 Pinned</span>}
+              {ann.pinned && <span className="badge badge-pin">Pinned</span>}
               <span className={`badge ${ann.audienceType === "AllMembers" ? "badge-blue" : "badge-amber"}`}>
                 {AUDIENCE_TYPES.find(a => a.value === ann.audienceType)?.label || ann.audienceType}
               </span>
@@ -788,7 +811,7 @@ function ComposeTab({ user, onSent }) {
         user.userId
       );
 
-      setSuccessMsg("✅ Announcement published successfully! Member inboxes will receive notifications.");
+      setSuccessMsg("Announcement published successfully! Member inboxes will receive notifications.");
       setTitle("");
       setBody("");
       setAudienceType("AllMembers");
@@ -913,7 +936,7 @@ function EventsManagementTab({ events, user, onRefresh }) {
         user.userId
       );
 
-      setToast("🎉 New event created successfully!");
+      setToast("New event created successfully!");
       setShowCreateModal(false);
       handleClearEventForm();
       await onRefresh();
@@ -1063,7 +1086,7 @@ function EventsManagementTab({ events, user, onRefresh }) {
               <div className="loading-spinner">Loading attendees...</div>
             ) : attendees.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">👥</div>
+                <div className="empty-icon"></div>
                 <p>No members have registered for this event yet.</p>
               </div>
             ) : (
@@ -1092,7 +1115,7 @@ function EventsManagementTab({ events, user, onRefresh }) {
 
       {events.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📅</div>
+          <div className="empty-icon"></div>
           <p>No events have been created.</p>
           <button className="btn-primary" onClick={() => setShowCreateModal(true)} style={{ marginTop: 16 }}>
             Create the first event
@@ -1124,13 +1147,13 @@ function EventsManagementTab({ events, user, onRefresh }) {
 
               <div className="event-details">
                 <div className="detail-item">
-                  <span>🏷️</span> <strong>Category:</strong> {ev.category || "Workshop"}
+                  <span></span> <strong>Category:</strong> {ev.category || "Workshop"}
                 </div>
                 <div className="detail-item">
-                  <span>🕒</span> <strong>Time:</strong> {formatDate(ev.eventDate)}
+                  <span></span> <strong>Time:</strong> {formatDate(ev.eventDate)}
                 </div>
                 <div className="detail-item">
-                  <span>👥</span> <strong>Registrations:</strong> {ev.registeredCount} RSVPs
+                  <span></span> <strong>Registrations:</strong> {ev.registeredCount} RSVPs
                 </div>
               </div>
 
@@ -1183,7 +1206,7 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
         user.userId
       );
 
-      setToast("✅ Report feedback saved and submitted to member!");
+      setToast("Report feedback saved and submitted to member!");
       setSelectedReport(null);
       await onRefresh();
     } catch (err) {
@@ -1221,7 +1244,7 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
           className={`filter-tab ${filterStatus === "Pending" || filterStatus === "Submitted" ? "active" : ""}`}
           onClick={() => setFilterStatus("Pending")}
         >
-          ⏳ Pending Review ({reports.filter(r => r.status === "Pending" || r.status === "Submitted").length})
+           Pending Review ({reports.filter(r => r.status === "Pending"|| r.status === "Submitted").length})
         </button>
         <button
           className={`filter-tab ${filterStatus === "Reviewed" ? "active" : ""}`}
@@ -1233,7 +1256,7 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
           className={`filter-tab ${filterStatus === "Flagged" ? "active" : ""}`}
           onClick={() => setFilterStatus("Flagged")}
         >
-          ⚠️ Flagged ({reports.filter(r => r.status === "Flagged").length})
+           Flagged ({reports.filter(r => r.status === "Flagged").length})
         </button>
       </div>
 
@@ -1256,7 +1279,7 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
               {selectedReport.fileName && (
                 <div className="attached-file-pill" style={{ marginBottom: 16 }}>
                   <div className="attached-file-info">
-                    <span className="attached-file-icon">📊</span>
+                    <span className="attached-file-icon"></span>
                     <div>
                       <div className="attached-file-title">Submitted Spreadsheet: <strong>{selectedReport.fileName}</strong></div>
                       {selectedReport.fileSize && <div className="attached-file-meta">{selectedReport.fileSize}</div>}
@@ -1268,10 +1291,10 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
                       download={selectedReport.fileName}
                       className="btn-download-attachment"
                     >
-                      📥 Download & Open Excel
+                       Download & Open Excel
                     </a>
                   ) : (
-                    <span className="file-stored-badge">📄 File on Record</span>
+                    <span className="file-stored-badge">File on Record</span>
                   )}
                 </div>
               )}
@@ -1324,7 +1347,7 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
                       checked={status === "Flagged"}
                       onChange={e => setStatus(e.target.value)}
                     />
-                    <span>⚠️ Flag (Requires Advisor Intervention)</span>
+                    <span>Flag (Requires Advisor Intervention)</span>
                   </label>
                 </div>
               </div>
@@ -1369,7 +1392,7 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
 
       {filteredReports.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📄</div>
+          <div className="empty-icon"></div>
           <p>No reports matched this filter.</p>
         </div>
       ) : (
@@ -1407,7 +1430,7 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
               {r.fileName && (
                 <div className="attached-file-pill">
                   <div className="attached-file-info">
-                    <span className="attached-file-icon">📊</span>
+                    <span className="attached-file-icon"></span>
                     <div>
                       <div className="attached-file-title">Submitted Spreadsheet: <strong>{r.fileName}</strong></div>
                       {r.fileSize && <div className="attached-file-meta">{r.fileSize}</div>}
@@ -1419,10 +1442,10 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
                       download={r.fileName}
                       className="btn-download-attachment"
                     >
-                      📥 Download Sheet
+                       Download Sheet
                     </a>
                   ) : (
-                    <span className="file-stored-badge">📄 File on Record</span>
+                    <span className="file-stored-badge">File on Record</span>
                   )}
                 </div>
               )}
@@ -1454,7 +1477,7 @@ function ReportsReviewTab({ reports, user, onRefresh }) {
               {r.reviewNotes && (
                 <div className="advisor-feedback-box">
                   <div className="advisor-feedback-header">
-                    <strong>💬 Admin / Advisor Comments</strong>
+                    <strong>Admin / Advisor Comments</strong>
                     {r.reviewerName && <span className="reviewer-name">by {r.reviewerName}</span>}
                   </div>
                   <p className="advisor-feedback-text">{r.reviewNotes}</p>

@@ -7,6 +7,15 @@ import {
   AUDIENCE_TYPES,
   REPORT_TEMPLATES,
 } from "../services/api";
+import {
+  IconGrid,
+  IconMegaphone,
+  IconCalendar,
+  IconDocument,
+  IconTrophy,
+  IconBook,
+  IconUser,
+} from "../components/Icons";
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -80,7 +89,7 @@ function NavigationHeader({ activeTab, canGoBack, previousTabLabel, onGoBack, on
     <div style={{ marginBottom: 18 }}>
       <div className="breadcrumbs">
         <span className="breadcrumb-link" onClick={onNavigateHome}>
-          🏠 Home
+           Home
         </span>
         <span className="breadcrumb-separator">/</span>
         <span className="breadcrumb-current">{TAB_LABELS[activeTab] || activeTab}</span>
@@ -108,11 +117,11 @@ function Sidebar({ user, activeTab, setActiveTab, onLogout }) {
   const stageName = getStageName(user.businessStageId);
 
   const navItems = [
-    { id: "dashboard", icon: "⊞", label: "Dashboard" },
-    { id: "announcements", icon: "📢", label: "Announcements" },
-    { id: "events", icon: "📅", label: "Events & Workshops" },
-    { id: "reports", icon: "📄", label: "Monthly Reports" },
-    { id: "milestones", icon: "🏆", label: "Milestones" },
+    { id: "dashboard", icon: IconGrid, label: "Dashboard" },
+    { id: "announcements", icon: IconMegaphone, label: "Announcements" },
+    { id: "events", icon: IconCalendar, label: "Events & Workshops" },
+    { id: "reports", icon: IconDocument, label: "Monthly Reports" },
+    { id: "milestones", icon: IconTrophy, label: "Milestones" },
   ];
 
   return (
@@ -142,17 +151,30 @@ function Sidebar({ user, activeTab, setActiveTab, onLogout }) {
             className={`nav-item ${activeTab === item.id ? "active" : ""}`}
             onClick={() => setActiveTab(item.id)}
           >
-            <span className="nav-icon">{item.icon}</span>
+            <span className="nav-icon"><item.icon /></span>
             {item.label}
           </div>
         ))}
+
+        <div className="nav-section-label">Learning & Hub</div>
+        <a
+          href="http://localhost:3000"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="nav-item"
+          style={{ textDecoration: "none", color: "inherit" }}
+          title="Open Standalone Knowledge Hub"
+        >
+          <span className="nav-icon"><IconBook /></span>
+          Knowledge Hub ↗
+        </a>
 
         <div className="nav-section-label">Account</div>
         <div
           className={`nav-item ${activeTab === "profile" ? "active" : ""}`}
           onClick={() => setActiveTab("profile")}
         >
-          <span className="nav-icon">👤</span>
+          <span className="nav-icon"><IconUser /></span>
           My Profile
         </div>
       </nav>
@@ -178,7 +200,7 @@ function DashboardHome({ user, setActiveTab, announcements, reports, events }) {
     <>
       <div className="topbar">
         <div className="topbar-title">
-          <h1>Welcome back, {user.fullName.split(" ")[0]} 👋</h1>
+          <h1>Welcome back, {user.fullName.split(" ")[0]}</h1>
           <p>Enactus Wits Support System & Venture Acceleration Portal</p>
         </div>
         <button className="btn-primary" onClick={() => setActiveTab("reports")}>
@@ -188,22 +210,22 @@ function DashboardHome({ user, setActiveTab, announcements, reports, events }) {
 
       <div className="stats-row">
         <div className="stat-card" onClick={() => setActiveTab("announcements")} style={{ cursor: "pointer" }}>
-          <div className="stat-icon">📢</div>
+          <div className="stat-icon"></div>
           <div className="stat-value">{announcements.length}</div>
           <div className="stat-label">Announcements for you</div>
         </div>
         <div className="stat-card" onClick={() => setActiveTab("events")} style={{ cursor: "pointer" }}>
-          <div className="stat-icon">📅</div>
+          <div className="stat-icon"></div>
           <div className="stat-value">{registeredEvents.length}</div>
           <div className="stat-label">Upcoming RSVP'd events</div>
         </div>
         <div className="stat-card" onClick={() => setActiveTab("reports")} style={{ cursor: "pointer" }}>
-          <div className="stat-icon">📄</div>
+          <div className="stat-icon"></div>
           <div className="stat-value">{reports.length}</div>
           <div className="stat-label">Reports submitted ({pendingReports.length} in review)</div>
         </div>
         <div className="stat-card" onClick={() => setActiveTab("profile")} style={{ cursor: "pointer" }}>
-          <div className="stat-icon">🚀</div>
+          <div className="stat-icon"></div>
           <div className="stat-value" style={{ fontSize: 20 }}>{stageName.replace(" Stage", "")}</div>
           <div className="stat-label">Your business stage</div>
         </div>
@@ -223,7 +245,7 @@ function DashboardHome({ user, setActiveTab, announcements, reports, events }) {
 
           {announcements.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">📭</div>
+              <div className="empty-icon"></div>
               <p>No new announcements at this time.</p>
             </div>
           ) : (
@@ -246,7 +268,7 @@ function DashboardHome({ user, setActiveTab, announcements, reports, events }) {
 
           {events.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">📅</div>
+              <div className="empty-icon"></div>
               <p>No upcoming events posted.</p>
             </div>
           ) : (
@@ -264,7 +286,7 @@ function DashboardHome({ user, setActiveTab, announcements, reports, events }) {
                 </div>
                 <div className="announcement-title">{ev.title}</div>
                 <div style={{ fontSize: 13, color: "#64748b", margin: "6px 0" }}>
-                  📍 {ev.location} &nbsp;•&nbsp; 🕒 {formatDate(ev.eventDate)}
+                   {ev.location} &nbsp;•&nbsp; {formatDate(ev.eventDate)}
                 </div>
                 <div className="announcement-body">{ev.description}</div>
               </div>
@@ -283,7 +305,7 @@ function AnnouncementCard({ ann }) {
   return (
     <div className={`announcement-card ${ann.pinned ? "pinned" : ""}`}>
       <div className="announcement-meta">
-        {ann.pinned && <span className="badge badge-pin">📌 Pinned</span>}
+        {ann.pinned && <span className="badge badge-pin">Pinned</span>}
         <span className={`badge ${ann.audienceType === "AllMembers" ? "badge-blue" : "badge-amber"}`}>
           {AUDIENCE_TYPES.find(a => a.value === ann.audienceType)?.label || ann.audienceType}
         </span>
@@ -324,19 +346,19 @@ function AnnouncementsTab({ announcements }) {
           className={`filter-tab ${filter === "pinned" ? "active" : ""}`}
           onClick={() => setFilter("pinned")}
         >
-          📌 Pinned
+           Pinned
         </button>
         <button
           className={`filter-tab ${filter === "stage" ? "active" : ""}`}
           onClick={() => setFilter("stage")}
         >
-          🎯 Stage Targeted
+           Stage Targeted
         </button>
       </div>
 
       {filtered.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📭</div>
+          <div className="empty-icon"></div>
           <p>No announcements match this filter.</p>
         </div>
       ) : (
@@ -373,7 +395,7 @@ function EventsTab({ events, user, onRefresh, triggerUndoToast }) {
         await api.registerForEvent(event.eventId, user.userId);
         if (triggerUndoToast) {
           triggerUndoToast({
-            message: `🎉 Success! You are registered for "${event.title}".`,
+            message: ` Success! You are registered for "${event.title}".`,
             type: "success",
             onUndo: async () => {
               await api.cancelEventRegistration(event.eventId, user.userId);
@@ -421,7 +443,7 @@ function EventsTab({ events, user, onRefresh, triggerUndoToast }) {
 
       {displayedEvents.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📅</div>
+          <div className="empty-icon"></div>
           <p>{filter === "registered" ? "You haven't RSVP'd to any events yet." : "No events scheduled."}</p>
         </div>
       ) : (
@@ -452,13 +474,13 @@ function EventsTab({ events, user, onRefresh, triggerUndoToast }) {
 
               <div className="event-details">
                 <div className="detail-item">
-                  <span>🏷️</span> <strong>Category:</strong> {ev.category || "Workshop"}
+                  <span></span> <strong>Category:</strong> {ev.category || "Workshop"}
                 </div>
                 <div className="detail-item">
-                  <span>🕒</span> <strong>Date & Time:</strong> {formatDate(ev.eventDate)}
+                  <span></span> <strong>Date & Time:</strong> {formatDate(ev.eventDate)}
                 </div>
                 <div className="detail-item">
-                  <span>👥</span> <strong>Total Registrations:</strong> {ev.registeredCount} members
+                  <span></span> <strong>Total Registrations:</strong> {ev.registeredCount} members
                 </div>
               </div>
 
@@ -585,7 +607,7 @@ function ReportsTab({ reports, user, onRefresh }) {
         user.userId
       );
 
-      setToast("🎉 Monthly report & spreadsheet submitted successfully!");
+      setToast("Monthly report & spreadsheet submitted successfully!");
       setShowSubmitModal(false);
       handleClearReportForm();
       await onRefresh();
@@ -615,7 +637,7 @@ function ReportsTab({ reports, user, onRefresh }) {
       <div className="templates-download-section">
         <div className="templates-header">
           <div>
-            <h2 className="templates-section-title">📊 Official Enactus Excel Report Templates</h2>
+            <h2 className="templates-section-title">Official Enactus Excel Report Templates</h2>
             <p className="templates-section-subtitle">
               Download the required Excel workbook template for your reporting cycle, fill it in, and submit it below.
             </p>
@@ -627,7 +649,7 @@ function ReportsTab({ reports, user, onRefresh }) {
             <div key={tmpl.id} className="template-card">
               <div className="template-card-top">
                 <div className="template-icon-wrapper">
-                  <span className="template-icon">📑</span>
+                  <span className="template-icon"></span>
                 </div>
                 <span className={`badge ${tmpl.badgeColor}`}>{tmpl.badge}</span>
               </div>
@@ -636,14 +658,14 @@ function ReportsTab({ reports, user, onRefresh }) {
               <p className="template-desc">{tmpl.description}</p>
               
               <div className="template-footer">
-                <span className="template-filesize">💾 {tmpl.fileSize} • .xlsx</span>
+                <span className="template-filesize"> {tmpl.fileSize} • .xlsx</span>
                 <a
                   href={tmpl.fileUrl}
                   download={tmpl.fileName}
                   className="btn-download-template"
                   title={`Download ${tmpl.fileName}`}
                 >
-                  <span>📥 Download Template</span>
+                  <span>Download Template</span>
                 </a>
               </div>
             </div>
@@ -715,7 +737,7 @@ function ReportsTab({ reports, user, onRefresh }) {
 
                   {attachedFile ? (
                     <div className="file-preview-card" onClick={e => e.stopPropagation()}>
-                      <div className="file-preview-icon">📊</div>
+                      <div className="file-preview-icon"></div>
                       <div className="file-preview-info">
                         <div className="file-preview-name">{attachedFile.name}</div>
                         <div className="file-preview-size">{attachedFile.size} • Ready for submission</div>
@@ -734,7 +756,7 @@ function ReportsTab({ reports, user, onRefresh }) {
                     </div>
                   ) : (
                     <div className="dropzone-prompt">
-                      <div className="dropzone-icon">📁</div>
+                      <div className="dropzone-icon"></div>
                       <div className="dropzone-title">
                         <strong>Click to browse</strong> or drag & drop your Excel file here
                       </div>
@@ -823,7 +845,7 @@ function ReportsTab({ reports, user, onRefresh }) {
 
       {reports.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📄</div>
+          <div className="empty-icon"></div>
           <h3>No reports submitted yet</h3>
           <p>Download a template above, fill it out, and submit your first monthly report for review and advisor feedback.</p>
           <button className="btn-primary" onClick={() => setShowSubmitModal(true)} style={{ marginTop: 16 }}>
@@ -836,7 +858,7 @@ function ReportsTab({ reports, user, onRefresh }) {
             <div key={r.reportId} className="report-card">
               <div className="report-header">
                 <div>
-                  <span className="report-month-tag">📅 Period: {r.reportMonth}</span>
+                  <span className="report-month-tag">Period: {r.reportMonth}</span>
                   <span className="badge badge-purple" style={{ marginLeft: 8 }}>
                     {r.reportType || "Roadmap Progress"}
                   </span>
@@ -850,7 +872,7 @@ function ReportsTab({ reports, user, onRefresh }) {
                     }`}
                     style={{ marginLeft: 8 }}
                   >
-                    {r.status === "Reviewed" ? "✓ Reviewed" : r.status === "Flagged" ? "⚠️ Flagged" : "⏳ Pending Review"}
+                    {r.status === "Reviewed"? "✓ Reviewed": r.status === "Flagged"? "Flagged": "Pending Review"}
                   </span>
                 </div>
                 <div className="report-revenue-tag">
@@ -862,7 +884,7 @@ function ReportsTab({ reports, user, onRefresh }) {
               {r.fileName && (
                 <div className="attached-file-pill">
                   <div className="attached-file-info">
-                    <span className="attached-file-icon">📊</span>
+                    <span className="attached-file-icon"></span>
                     <div>
                       <div className="attached-file-title">Submitted Spreadsheet: <strong>{r.fileName}</strong></div>
                       {r.fileSize && <div className="attached-file-meta">{r.fileSize}</div>}
@@ -874,10 +896,10 @@ function ReportsTab({ reports, user, onRefresh }) {
                       download={r.fileName}
                       className="btn-download-attachment"
                     >
-                      📥 Download Sheet
+                       Download Sheet
                     </a>
                   ) : (
-                    <span className="file-stored-badge">📄 File on Record</span>
+                    <span className="file-stored-badge">File on Record</span>
                   )}
                 </div>
               )}
@@ -909,7 +931,7 @@ function ReportsTab({ reports, user, onRefresh }) {
               {r.reviewNotes && (
                 <div className="advisor-feedback-box">
                   <div className="advisor-feedback-header">
-                    <strong>💬 Advisor / Admin Comments</strong>
+                    <strong>Advisor / Admin Comments</strong>
                     {r.reviewerName && <span className="reviewer-name">by {r.reviewerName}</span>}
                   </div>
                   <p className="advisor-feedback-text">{r.reviewNotes}</p>
@@ -942,7 +964,7 @@ function MilestonesTab({ milestones }) {
 
       {milestones.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🏆</div>
+          <div className="empty-icon"></div>
           <p>No milestones recorded yet. Keep building!</p>
         </div>
       ) : (
@@ -953,7 +975,7 @@ function MilestonesTab({ milestones }) {
               <div className="milestone-card">
                 <div className="announcement-meta">
                   {m.flaggedForShowcase && (
-                    <span className="badge badge-green">⭐ Flagged for Nationals Showcase</span>
+                    <span className="badge badge-green">Flagged for Nationals Showcase</span>
                   )}
                   <span className="badge badge-gray">{m.source || "MemberLogged"}</span>
                   <span className="badge badge-gray">{formatDate(m.achievedAt)}</span>

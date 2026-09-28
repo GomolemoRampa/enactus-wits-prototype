@@ -23,12 +23,12 @@ export const roles = [
 //  TABLE: BusinessStage
 //  Categorises each member's business progress.
 //  stageId is FK in User, Resource, Announcement (via AudienceMap).
+//  Aligned 100% to Group11 ERD: Idea, Prototype, RunningBusiness
 // ────────────────────────────────────────────────────────────
 export const businessStages = [
-  { stageId: 1, stageName: "Idea Stage",        stageDescription: "Member has a business concept but has not yet started building. Focus areas: validation, research, and market sizing." },
-  { stageId: 2, stageName: "Start-Up Stage",    stageDescription: "Member is actively building their business. Focus areas: product development, early customers, and MVP." },
-  { stageId: 3, stageName: "Growth Stage",      stageDescription: "Business is operational with early traction. Focus areas: scaling, systems, and revenue growth." },
-  { stageId: 4, stageName: "Established Stage", stageDescription: "Business is stable with consistent revenue. Focus areas: expansion, social impact, and nationals showcase." },
+  { stageId: 1, business_stage_id: 1, stageName: "Idea Stage", stage_name: "Idea", stageDescription: "Member has a business concept but has not yet started building. Focus areas: validation, research, and market sizing.", stage_description: "Initial concept and ideation phase" },
+  { stageId: 2, business_stage_id: 2, stageName: "Prototype Stage", stage_name: "Prototype", stageDescription: "Member is actively building their business. Focus areas: product development, early customers, and MVP.", stage_description: "Building and testing the MVP" },
+  { stageId: 3, business_stage_id: 3, stageName: "Running Business Stage", stage_name: "RunningBusiness", stageDescription: "Business is operational and generating revenue or users. Focus areas: scaling, systems, and revenue growth.", stage_description: "Live business generating revenue or users" },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ export const users = [
   {
     userId:          1,
     fullName:        "Lerato Dlamini",
-    email:           "lerato@wits.ac.za",
+    email:           "lerato@students.wits.ac.za",
     passwordHash:    "hashed_password123",   // never store plain text in production
     studentNumber:   "2021045123",
     phone:           "071 234 5678",
@@ -48,15 +48,15 @@ export const users = [
     businessIdea:    "EduBridge",
     status:          "Active",               // Active | Pending | Inactive
     emailVerified:   true,
-    roleId:          1,                      // FK → Role
-    businessStageId: 2,                      // FK → BusinessStage
+    roleId:          1,                      // FK → Role (Member)
+    businessStageId: 2,                      // FK → BusinessStage (Prototype)
     createdAt:       "2026-03-01T08:00:00Z",
     updatedAt:       "2026-03-15T10:30:00Z",
   },
   {
     userId:          2,
     fullName:        "Admin User",
-    email:           "admin@wits.ac.za",
+    email:           "admin@students.wits.ac.za",
     passwordHash:    "hashed_admin123",
     studentNumber:   "ADMIN001",
     phone:           "011 717 0000",
@@ -72,7 +72,7 @@ export const users = [
   {
     userId:          3,
     fullName:        "Sipho Ndlovu",
-    email:           "sipho@wits.ac.za",
+    email:           "sipho@students.wits.ac.za",
     passwordHash:    "hashed_password123",
     studentNumber:   "2020078432",
     phone:           "082 987 6543",
@@ -80,15 +80,15 @@ export const users = [
     businessIdea:    "FarmLink",
     status:          "Active",
     emailVerified:   true,
-    roleId:          1,
-    businessStageId: 3,
+    roleId:          1,                      // FK → Role (Member)
+    businessStageId: 3,                      // FK → BusinessStage (RunningBusiness)
     createdAt:       "2026-02-14T09:00:00Z",
     updatedAt:       "2026-03-10T14:00:00Z",
   },
   {
     userId:          4,
     fullName:        "Amara Osei",
-    email:           "amara@wits.ac.za",
+    email:           "amara@students.wits.ac.za",
     passwordHash:    "hashed_password123",
     studentNumber:   "2022031987",
     phone:           "063 111 2233",
@@ -96,15 +96,15 @@ export const users = [
     businessIdea:    "StyleHub",
     status:          "Active",
     emailVerified:   true,
-    roleId:          1,
-    businessStageId: 1,
+    roleId:          1,                      // FK → Role (Member)
+    businessStageId: 1,                      // FK → BusinessStage (Idea)
     createdAt:       "2026-03-05T11:00:00Z",
     updatedAt:       "2026-03-05T11:00:00Z",
   },
   {
     userId:          5,
     fullName:        "Nomvula Khumalo",
-    email:           "nomvula@wits.ac.za",
+    email:           "nomvula@students.wits.ac.za",
     passwordHash:    "hashed_password123",
     studentNumber:   "2019056321",
     phone:           "079 445 8812",
@@ -112,8 +112,8 @@ export const users = [
     businessIdea:    "GreenCore",
     status:          "Active",
     emailVerified:   true,
-    roleId:          1,
-    businessStageId: 4,
+    roleId:          1,                      // FK → Role (Member)
+    businessStageId: 3,                      // FK → BusinessStage (RunningBusiness)
     createdAt:       "2025-08-10T07:30:00Z",
     updatedAt:       "2026-04-01T09:00:00Z",
   },
@@ -155,8 +155,8 @@ export const announcements = [
   },
   {
     announcementId: 2,
-    title:          "Workshop: Pitching to Investors — Idea & Start-Up Stage",
-    body:           "We're hosting a pitching workshop specifically for members in the Idea and Start-Up stages. This is a great opportunity to refine your pitch before the semester showcase. RSVP by Friday.",
+    title:          "Workshop: Pitching to Investors — Idea & Prototype Stage",
+    body:           "We're hosting a pitching workshop specifically for members in the Idea and Prototype stages. This is a great opportunity to refine your pitch before the semester showcase. RSVP by Friday.",
     authorId:       2,
     audienceType:   "stage",
     pinned:         false,
@@ -175,8 +175,8 @@ export const announcements = [
   },
   {
     announcementId: 4,
-    title:          "Growth Stage Mentorship Programme — Applications Open",
-    body:           "Applications for the Growth Stage Mentorship Programme are now open. If you're in the Growth or Established stage, you can apply for a dedicated industry mentor. Applications close 10 May.",
+    title:          "Running Business Mentorship Programme — Applications Open",
+    body:           "Applications for the Running Business Mentorship Programme are now open. If you're in the Running Business stage, you can apply for a dedicated industry mentor. Applications close 10 May.",
     authorId:       2,
     audienceType:   "stage",
     pinned:         false,
@@ -193,9 +193,8 @@ export const announcements = [
 // ────────────────────────────────────────────────────────────
 export const audienceMap = [
   { audienceMapId: 1, announcementId: 2, stageId: 1 },  // Workshop → Idea Stage
-  { audienceMapId: 2, announcementId: 2, stageId: 2 },  // Workshop → Start-Up Stage
-  { audienceMapId: 3, announcementId: 4, stageId: 3 },  // Mentorship → Growth Stage
-  { audienceMapId: 4, announcementId: 4, stageId: 4 },  // Mentorship → Established Stage
+  { audienceMapId: 2, announcementId: 2, stageId: 2 },  // Workshop → Prototype Stage
+  { audienceMapId: 3, announcementId: 4, stageId: 3 },  // Mentorship → Running Business Stage
 ];
 
 // ────────────────────────────────────────────────────────────

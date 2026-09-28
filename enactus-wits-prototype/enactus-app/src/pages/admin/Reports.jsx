@@ -55,7 +55,7 @@ export default function Reports({ user: propUser }) {
     return (
       <div className="reports-page">
         <div className="reports-message-card">
-          <div className="reports-message-icon">🔒</div>
+          <div className="reports-message-icon"></div>
           <h3>Authentication Required</h3>
           <p>Please sign in to view system-generated analytics.</p>
         </div>
@@ -77,7 +77,7 @@ export default function Reports({ user: propUser }) {
           </p>
         </header>
         <div className="reports-message-card warning">
-          <div className="reports-message-icon">⚠️</div>
+          <div className="reports-message-icon"></div>
           <h3>Access Restricted</h3>
           <p>
             System-generated reports are available to <strong>Super Admins</strong> and{" "}
@@ -108,8 +108,8 @@ export default function Reports({ user: propUser }) {
 
       <div className="reports-meta-bar">
         <div className="reports-page-tags">
-          <span className="badge badge-blue">📄 Page 1: Membership &amp; Platform Engagement</span>
-          <span className="badge badge-gold">🚀 Page 2: Business Stage Progression &amp; Milestone</span>
+          <span className="badge badge-blue">Page 1: Membership &amp; Platform Engagement</span>
+          <span className="badge badge-gold">Page 2: Business Stage Progression &amp; Milestone</span>
         </div>
         <a
           href={POWER_BI_URL}

@@ -154,7 +154,7 @@ export default function Register({ onRegister, onGoLogin }) {
             <button type="button" className="btn-back-auth" onClick={() => setStep("form")} style={{ marginBottom: 12 }}>
               ← Back to edit registration details
             </button>
-            <div className="verify-icon">📧</div>
+            <div className="verify-icon"></div>
             <h3>Verify your email address</h3>
             <p>
               We've registered your account for{" "}

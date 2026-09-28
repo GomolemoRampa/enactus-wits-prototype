@@ -22,11 +22,11 @@ export const ROLES = [
 ];
 
 export const AUDIENCE_TYPES = [
-  { value: "AllMembers", label: "📢 All Members (Broadcast)" },
-  { value: "IdeaStage", label: "💡 Idea Stage" },
-  { value: "PrototypeStage", label: "🛠️ Prototype Stage" },
-  { value: "RunningBusiness", label: "🚀 Running Business" },
-  { value: "ExecutivesOnly", label: "👔 Executives Only" },
+  { value: "AllMembers", label: "All Members (Broadcast)"},
+  { value: "IdeaStage", label: "Idea Stage"},
+  { value: "PrototypeStage", label: "Prototype Stage"},
+  { value: "RunningBusiness", label: "Running Business"},
+  { value: "ExecutivesOnly", label: "Executives Only"},
 ];
 
 // 2. Local Storage Sync Keys for Offline / Prototype Fallback

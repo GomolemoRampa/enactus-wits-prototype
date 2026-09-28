@@ -127,9 +127,23 @@ ALTER TABLE public.app_user ALTER COLUMN role_id DROP NOT NULL;
 ALTER TABLE public.app_user ALTER COLUMN account_status SET DEFAULT 'Pending'::account_status;
 
 -- ────────────────────────────────────────────────────────────
--- 5. VERIFY: Quick sanity check — shows existing tables
+-- 5. RLS HELPER: Ensure Faculty Advisors, Admins, and SuperAdmins have reviewer access
+-- ────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM app_user u
+    JOIN role r ON r.role_id = u.role_id
+    WHERE u.auth_user_id = auth.uid()
+      AND r.role_name IN ('Admin', 'SuperAdmin', 'FacultyAdvisor')
+  );
+$$ LANGUAGE sql STABLE SECURITY DEFINER;
+
+-- ────────────────────────────────────────────────────────────
+-- 6. VERIFY: Quick sanity check — shows existing tables
 -- ────────────────────────────────────────────────────────────
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public'
 ORDER BY table_name;
+

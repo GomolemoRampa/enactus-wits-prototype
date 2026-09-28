@@ -5,6 +5,7 @@ import ProfileSetup from "./pages/ProfileSetup";
 import MemberDashboard from "./pages/MemberDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import { api } from "./services/api";
+import { IconWarning, IconClock } from "./components/Icons";
 import { isSupabaseConfigured } from "./lib/supabaseClient";
 import "./App.css";
 
@@ -200,7 +201,7 @@ export default function App() {
             
             {currentUser.status === "Rejected" ? (
               <>
-                <div className="status-icon-rejected" style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+                <div className="status-icon-rejected" style={{ marginBottom: 16 }}><IconWarning width={40} height={40} /></div>
                 <h2>Account Registration Rejected</h2>
                 <p className="auth-sub" style={{ marginTop: 12, fontSize: 15, lineHeight: "1.5" }}>
                   Your account registration request has been reviewed and rejected by the Enactus Wits Administration.
@@ -211,7 +212,7 @@ export default function App() {
               </>
             ) : (
               <>
-                <div className="status-icon-pending" style={{ fontSize: 48, marginBottom: 16 }}>⌛</div>
+                <div className="status-icon-pending" style={{ marginBottom: 16 }}><IconClock width={40} height={40} /></div>
                 <h2>Awaiting Admin Approval</h2>
                 <p className="auth-sub" style={{ marginTop: 12, fontSize: 15, lineHeight: "1.5" }}>
                   Thank you for completing your founder profile, <strong>{currentUser.fullName}</strong>!
