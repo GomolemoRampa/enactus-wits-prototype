@@ -158,7 +158,7 @@ function Sidebar({ user, activeTab, setActiveTab, onLogout }) {
 
         <div className="nav-section-label">Learning & Hub</div>
         <a
-          href="http://localhost:3000"
+          href={process.env.REACT_APP_KNOWLEDGE_HUB_URL || "http://localhost:3000"}
           target="_blank"
           rel="noopener noreferrer"
           className="nav-item"
