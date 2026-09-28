@@ -51,11 +51,11 @@ class EnactusSSOAdapter implements IEnactusSSOAdapter {
       throw new Error(authError?.message || "Login failed");
     }
 
-    // Fetch user details from the 'user' table (same as main app)
+    // Fetch user details from the 'app_user' table (same as main app)
     const { data: userData, error: userError } = await supabase
-      .from("user")
-      .select("*")
-      .eq("id", authData.session.user.id)
+      .from("app_user")
+      .select("*, role:role_id(role_name), business_stage:business_stage_id(stage_name)")
+      .eq("auth_user_id", authData.session.user.id)
       .single();
 
     if (userError || !userData) {
@@ -63,13 +63,13 @@ class EnactusSSOAdapter implements IEnactusSSOAdapter {
     }
 
     const user: EnactusUser = {
-      id: userData?.id || authData.session.user.id,
-      enactusId: userData?.student_number || authData.session.user.id,
-      name: userData ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() : 'Enactus User',
-      email: userData?.email || authData.session.user.email || '',
-      role: (userData?.role as UserRole) || 'Member',
-      isRegisteredOnMainSystem: true,
-      businessStageId: userData?.business_stage || undefined,
+      id: userData?.user_id || authData.session.user.id,
+      enactusId: userData?.auth_user_id || authData.session.user.id,
+      name: userData?.full_name || 'Enactus User',
+      email: userData?.wits_email || authData.session.user.email || '',
+      role: (userData?.role?.role_name as UserRole) || 'Member',
+      isRegisteredOnMainSystem: !!userData,
+      businessStageId: userData?.business_stage?.stage_name || undefined,
     };
 
     const session: AuthSession = {
