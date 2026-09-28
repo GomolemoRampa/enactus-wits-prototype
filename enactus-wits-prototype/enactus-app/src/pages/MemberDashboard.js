@@ -15,6 +15,7 @@ import {
   IconTrophy,
   IconBook,
   IconUser,
+  IconBell,
 } from "../components/Icons";
 
 function formatDate(iso) {
@@ -108,7 +109,7 @@ function NavigationHeader({ activeTab, canGoBack, previousTabLabel, onGoBack, on
   );
 }
 
-function Sidebar({ user, activeTab, setActiveTab, onLogout }) {
+function Sidebar({ user, activeTab, setActiveTab, onLogout, announcementsCount }) {
   const initials = (user.fullName || "M")
     .split(" ")
     .map(n => n[0])
@@ -118,7 +119,7 @@ function Sidebar({ user, activeTab, setActiveTab, onLogout }) {
 
   const navItems = [
     { id: "dashboard", icon: IconGrid, label: "Dashboard" },
-    { id: "announcements", icon: IconMegaphone, label: "Announcements" },
+    { id: "announcements", icon: IconMegaphone, label: "Announcements", badge: announcementsCount > 0 ? announcementsCount : null },
     { id: "events", icon: IconCalendar, label: "Events & Workshops" },
     { id: "reports", icon: IconDocument, label: "Monthly Reports" },
     { id: "milestones", icon: IconTrophy, label: "Milestones" },
@@ -152,7 +153,8 @@ function Sidebar({ user, activeTab, setActiveTab, onLogout }) {
             onClick={() => setActiveTab(item.id)}
           >
             <span className="nav-icon"><item.icon /></span>
-            {item.label}
+            <span style={{ flex: 1 }}>{item.label}</span>
+            {item.badge && <span className="nav-badge" style={{ backgroundColor: "var(--status-danger)", color: "white" }}>{item.badge}</span>}
           </div>
         ))}
 
@@ -203,9 +205,24 @@ function DashboardHome({ user, setActiveTab, announcements, reports, events }) {
           <h1>Welcome back, {user.fullName.split(" ")[0]}</h1>
           <p>Enactus Wits Support System & Venture Acceleration Portal</p>
         </div>
-        <button className="btn-primary" onClick={() => setActiveTab("reports")}>
-          + Submit Monthly Report
-        </button>
+        <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          <button 
+            className="btn-icon" 
+            onClick={() => setActiveTab("announcements")}
+            style={{ position: "relative", border: "none", background: "none", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center" }}
+            title="View Announcements"
+          >
+            <IconBell />
+            {announcements.length > 0 && (
+              <span className="nav-badge" style={{ position: "absolute", top: -8, right: -12, backgroundColor: "var(--status-danger)", color: "white", padding: "2px 6px", borderRadius: "10px", fontSize: "10px", fontWeight: "bold" }}>
+                {announcements.length}
+              </span>
+            )}
+          </button>
+          <button className="btn-primary" onClick={() => setActiveTab("reports")}>
+            + Submit Monthly Report
+          </button>
+        </div>
       </div>
 
       <div className="stats-row">
@@ -1169,6 +1186,7 @@ export default function MemberDashboard({ user, onLogout }) {
         activeTab={activeTab}
         setActiveTab={navigateTab}
         onLogout={onLogout}
+        announcementsCount={announcements ? announcements.length : 0}
       />
       <div className="main-content">
         <NavigationHeader
