@@ -6,9 +6,39 @@ import { PublicLandingPage } from './components/landing/PublicLandingPage';
 import { CourseList } from './components/courses/CourseList';
 import { ResourceList } from './components/resources/ResourceList';
 import { AdminChatReview } from './components/chat/AdminChatReview';
+import { AdminContentManager } from './components/admin/AdminContentManager';
 import { KnowledgeAssistantDrawer } from './components/chat/KnowledgeAssistantDrawer';
 import { chatService } from './services/chatService';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, BookOpen, ShieldAlert } from 'lucide-react';
+
+// Admin Portal with sub-tabs for Content Management and Chat Review
+const AdminPortal: React.FC = () => {
+  const [adminSubTab, setAdminSubTab] = useState<'content' | 'chat'>('content');
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: '1px solid var(--border-color)', paddingBottom: 10 }}>
+        <button
+          type="button"
+          className={`nav-link-btn ${adminSubTab === 'content' ? 'active' : ''}`}
+          onClick={() => setAdminSubTab('content')}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
+          <BookOpen size={14} /> Content Management
+        </button>
+        <button
+          type="button"
+          className={`nav-link-btn ${adminSubTab === 'chat' ? 'active' : ''}`}
+          onClick={() => setAdminSubTab('chat')}
+          style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
+          <ShieldAlert size={14} /> Chat Review & Flagged
+        </button>
+      </div>
+
+      {adminSubTab === 'content' && <AdminContentManager />}
+      {adminSubTab === 'chat' && <AdminChatReview />}
+    </div>
+  );
+};
 
 export const App: React.FC = () => {
   const { isAuthenticated, isLoading, isAdmin, user } = useAuth();
@@ -63,7 +93,7 @@ export const App: React.FC = () => {
       <main className="main-wrapper">
         {activeTab === 'courses' && <CourseList />}
         {activeTab === 'resources' && <ResourceList />}
-        {activeTab === 'admin' && isAdmin && <AdminChatReview />}
+        {activeTab === 'admin' && isAdmin && <AdminPortal />}
       </main>
 
       {/* Floating Chat Assistant Launcher */}

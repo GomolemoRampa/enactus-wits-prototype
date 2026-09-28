@@ -37,78 +37,72 @@ class ResourceService {
    * Fetch resources from live Supabase DB with cache fallback
    */
   public async fetchResources(): Promise<Resource[]> {
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('resource')
-          .select(`
-            resource_id,
-            title,
-            content_type,
-            url,
-            business_stage_id,
-            category_id,
-            uploaded_at,
-            resource_category ( category_id, category_name ),
-            app_user ( full_name )
-          `)
-          .order('uploaded_at', { ascending: false });
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          const mapped: Resource[] = data.map((r: any) => ({
-            id: String(r.resource_id),
-            title: r.title,
-            summary: `Verified Enactus incubation resource (${r.content_type}).`,
-            fileType: (r.content_type as ResourceFileType) || 'Document',
-            businessStage: r.business_stage_id ? (STAGE_ID_TO_NAME[r.business_stage_id] || 'All Stages') : 'All Stages',
-            category: r.resource_category?.category_name || 'General',
-            author: r.app_user?.full_name || 'Enactus Wits Faculty',
-            downloadUrl: r.url || '#',
-            dateAdded: (r.uploaded_at || new Date().toISOString()).split('T')[0],
-            tags: [r.content_type, r.resource_category?.category_name].filter(Boolean),
-          }));
-
-          localStorage.setItem(this.resourcesKey, JSON.stringify(mapped));
-          return mapped;
-        }
-      } catch (err) {
-        console.warn('[ResourceService] Supabase fetch failed, using local cache:', err);
-      }
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase is not configured or offline.');
     }
-    return this.getResources();
+
+    const { data, error } = await supabase
+      .from('resource')
+      .select(`
+        resource_id,
+        title,
+        content_type,
+        url,
+        business_stage_id,
+        category_id,
+        uploaded_at,
+        resource_category ( category_id, category_name ),
+        app_user ( full_name )
+      `)
+      .order('uploaded_at', { ascending: false });
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      const mapped: Resource[] = data.map((r: any) => ({
+        id: String(r.resource_id),
+        title: r.title,
+        summary: `Verified Enactus incubation resource (${r.content_type}).`,
+        fileType: (r.content_type as ResourceFileType) || 'Document',
+        businessStage: r.business_stage_id ? (STAGE_ID_TO_NAME[r.business_stage_id] || 'All Stages') : 'All Stages',
+        category: r.resource_category?.category_name || 'General',
+        author: r.app_user?.full_name || 'Enactus Wits Faculty',
+        downloadUrl: r.url || '#',
+        dateAdded: (r.uploaded_at || new Date().toISOString()).split('T')[0],
+        tags: [r.content_type, r.resource_category?.category_name].filter(Boolean),
+      }));
+      return mapped;
+    }
+    
+    return [];
   }
 
   /**
    * Fetch categories from live Supabase DB
    */
   public async fetchCategories(): Promise<ResourceCategory[]> {
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('resource_category')
-          .select('category_id, category_name, created_at')
-          .order('category_name', { ascending: true });
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          const mapped: ResourceCategory[] = data.map((c: any) => ({
-            id: String(c.category_id),
-            name: c.category_name,
-            description: `Official incubation topic category.`,
-            createdAt: (c.created_at || new Date().toISOString()).split('T')[0],
-          }));
-
-          localStorage.setItem(this.categoriesKey, JSON.stringify(mapped));
-          return mapped;
-        }
-      } catch (err) {
-        console.warn('[ResourceService] Supabase categories fetch failed:', err);
-      }
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase is not configured or offline.');
     }
-    return this.getCategories();
+
+    const { data, error } = await supabase
+      .from('resource_category')
+      .select('category_id, category_name, created_at')
+      .order('category_name', { ascending: true });
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      const mapped: ResourceCategory[] = data.map((c: any) => ({
+        id: String(c.category_id),
+        name: c.category_name,
+        description: `Official incubation topic category.`,
+        createdAt: (c.created_at || new Date().toISOString()).split('T')[0],
+      }));
+      return mapped;
+    }
+    
+    return [];
   }
 
   public getResources(): Resource[] {
@@ -164,132 +158,101 @@ class ResourceService {
 
   // Admin Resource Operations (Async with Supabase support)
   public async createResource(resource: Omit<Resource, 'id' | 'dateAdded'>, currentUserId?: number): Promise<Resource> {
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        const stageId = STAGE_NAME_TO_ID[resource.businessStage] || null;
-
-        const { data, error } = await supabase
-          .from('resource')
-          .insert({
-            title: resource.title,
-            content_type: resource.fileType || 'Document',
-            url: resource.downloadUrl || '#',
-            business_stage_id: stageId,
-            uploaded_by_user_id: currentUserId || 2, // default admin ID
-          })
-          .select()
-          .single();
-
-        if (!error && data) {
-          const newRes: Resource = {
-            ...resource,
-            id: String(data.resource_id),
-            dateAdded: (data.uploaded_at || new Date().toISOString()).split('T')[0],
-          };
-          const list = this.getResources();
-          list.unshift(newRes);
-          localStorage.setItem(this.resourcesKey, JSON.stringify(list));
-          return newRes;
-        }
-      } catch (err) {
-        console.warn('[ResourceService] Supabase createResource fallback to local:', err);
-      }
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase is not configured or offline.');
     }
 
-    // Local / Offline fallback
-    const list = this.getResources();
-    const newRes: Resource = {
+    const stageId = STAGE_NAME_TO_ID[resource.businessStage] || null;
+
+    const { data, error } = await supabase
+      .from('resource')
+      .insert({
+        title: resource.title,
+        content_type: resource.fileType || 'Document',
+        url: resource.downloadUrl || '#',
+        business_stage_id: stageId,
+        uploaded_by_user_id: currentUserId || 2, // default admin ID
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
       ...resource,
-      id: `res-${Date.now()}`,
-      dateAdded: new Date().toISOString().split('T')[0],
+      id: String(data.resource_id),
+      dateAdded: (data.uploaded_at || new Date().toISOString()).split('T')[0],
     };
-    list.unshift(newRes);
-    localStorage.setItem(this.resourcesKey, JSON.stringify(list));
-    return newRes;
   }
 
   public async updateResource(id: string, updates: Partial<Resource>): Promise<Resource | null> {
-    const list = this.getResources();
-    const index = list.findIndex(r => r.id === id);
-    if (index === -1) return null;
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase is not configured or offline.');
+    }
 
-    const updated = {
-      ...list[index],
-      ...updates,
+    const { data, error } = await supabase
+      .from('resource')
+      .update({
+        title: updates.title,
+        content_type: updates.fileType,
+        url: updates.downloadUrl,
+        business_stage_id: updates.businessStage ? STAGE_NAME_TO_ID[updates.businessStage] : undefined,
+      })
+      .eq('resource_id', Number(id))
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      ...(updates as Resource), // Simplification since full resource mapping logic depends on existing data usually, but returning updates mapped works for the caller
+      id: String(data.resource_id),
     };
-    list[index] = updated;
-    localStorage.setItem(this.resourcesKey, JSON.stringify(list));
-    return updated;
   }
 
   public async deleteResource(id: string): Promise<boolean> {
-    if (isSupabaseConfigured() && supabase && !id.startsWith('res-')) {
-      try {
-        await supabase.from('resource').delete().eq('resource_id', Number(id));
-      } catch (err) {
-        console.warn('[ResourceService] Supabase deleteResource fallback:', err);
-      }
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase is not configured or offline.');
     }
-
-    const list = this.getResources();
-    const filtered = list.filter(r => r.id !== id);
-    if (filtered.length === list.length) return false;
-    localStorage.setItem(this.resourcesKey, JSON.stringify(filtered));
+    
+    const { error } = await supabase.from('resource').delete().eq('resource_id', Number(id));
+    
+    if (error) throw error;
+    
     return true;
   }
 
   // Admin Category Operations
   public async createCategory(name: string, description: string): Promise<ResourceCategory> {
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('resource_category')
-          .insert({ category_name: name.trim() })
-          .select()
-          .single();
-
-        if (!error && data) {
-          const newCat: ResourceCategory = {
-            id: String(data.category_id),
-            name: data.category_name,
-            description: description.trim(),
-            createdAt: (data.created_at || new Date().toISOString()).split('T')[0],
-          };
-          const categories = this.getCategories();
-          categories.push(newCat);
-          localStorage.setItem(this.categoriesKey, JSON.stringify(categories));
-          return newCat;
-        }
-      } catch (err) {
-        console.warn('[ResourceService] Supabase createCategory fallback:', err);
-      }
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase is not configured or offline.');
     }
+    
+    const { data, error } = await supabase
+      .from('resource_category')
+      .insert({ category_name: name.trim() })
+      .select()
+      .single();
 
-    const categories = this.getCategories();
-    const newCat: ResourceCategory = {
-      id: `cat-${Date.now()}`,
-      name: name.trim(),
+    if (error) throw error;
+    
+    return {
+      id: String(data.category_id),
+      name: data.category_name,
       description: description.trim(),
-      createdAt: new Date().toISOString().split('T')[0],
+      createdAt: (data.created_at || new Date().toISOString()).split('T')[0],
     };
-    categories.push(newCat);
-    localStorage.setItem(this.categoriesKey, JSON.stringify(categories));
-    return newCat;
   }
 
   public async deleteCategory(id: string): Promise<boolean> {
-    if (isSupabaseConfigured() && supabase && !id.startsWith('cat-')) {
-      try {
-        await supabase.from('resource_category').delete().eq('category_id', Number(id));
-      } catch (err) {
-        console.warn('[ResourceService] Supabase deleteCategory fallback:', err);
-      }
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase is not configured or offline.');
     }
-
-    const categories = this.getCategories();
-    const filtered = categories.filter(c => c.id !== id);
-    if (filtered.length === categories.length) return false;
-    localStorage.setItem(this.categoriesKey, JSON.stringify(filtered));
+    
+    const { error } = await supabase.from('resource_category').delete().eq('category_id', Number(id));
+    
+    if (error) throw error;
+    
     return true;
   }
 }
